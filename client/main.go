@@ -149,16 +149,11 @@ func main() {
 		termbox.SetCell(80, i, 0x2502, termbox.ColorRed, termbox.ColorBlack)
 	}
 
+	// TODO Chat Box
 	for i := 83; i < 120; i++ {
 		termbox.SetCell(i, 2, 0x2500, termbox.ColorRed, termbox.ColorBlack)
 		termbox.SetCell(i, 31, 0x2500, termbox.ColorRed, termbox.ColorBlack)
 	}
-
-	// for i := 2; i < 33; i++ {
-	// 	termbox.SetCell(0, i, 0x2502, termbox.ColorRed, termbox.ColorBlack)
-	// 	termbox.SetCell(80, i, 0x2502, termbox.ColorRed, termbox.ColorBlack)
-	// }
-	
 
 
 	destination := "127.0.0.1:9000";
