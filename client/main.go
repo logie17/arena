@@ -42,7 +42,7 @@ type Fighter interface {
 	Pos(int, int)
 	Action(string)
 	SetId(int)
-	// Stab()
+	Stab()
 }
 
 func (fighter * fighter) Id() int {
@@ -64,6 +64,7 @@ func (fighter * fighter) Pos(x, y int) {
 }
 
 func (fighter * fighter) Action(action string) {
+	act := "pos"
 	switch action {
 	case "Down":
 		fighter.Down()
@@ -73,9 +74,16 @@ func (fighter * fighter) Action(action string) {
 		fighter.Left()
 	case "Right":
 		fighter.Right()
+	case "Stab":
+		act = "stab"
+		fighter.Stab()
 	}
 
-	fighter.conn.Write([]byte(fmt.Sprintf("%d,%d,%d\n",fighter.id,fighter.x,fighter.y)))
+	fighter.conn.Write([]byte(fmt.Sprintf("%s,%d,%d,%d\n",act,fighter.id,fighter.x,fighter.y)))
+}
+
+func (fighter * fighter) Stab() {
+//	fmt.Println("STAB!!!")
 }
 
 func (fighter * fighter) Down() {
@@ -171,9 +179,10 @@ func main() {
 	
 	fmt.Println(str)
 
-	id,_ := strconv.Atoi(str[0])
-	x,_ := strconv.Atoi(str[1])
-	y,_ := strconv.Atoi(str[2])
+	//action := str[0]
+	id,_ := strconv.Atoi(str[1])
+	x,_ := strconv.Atoi(str[2])
+	y,_ := strconv.Atoi(str[3])
 
 	fighter := NewFighter(x,y,id,"me",cn)
 	fighter.Draw()
@@ -186,14 +195,20 @@ func main() {
 			line, _ := bufc.ReadString('\n')
 			str := strings.Split(strings.TrimSpace(string(line)),",");
 
-			id,_ := strconv.Atoi(str[0])
+			action := str[0]
+			id,_ := strconv.Atoi(str[1])
+
 			if id != fighter.Id() && enemy.Id() == 0 {
 				enemy.SetId(id)
 			}
 
+			if action == "hit" && id == fighter.id {
+				println("HI!!!!")
+			}
+
 			if id == enemy.Id() {
-				x,_ := strconv.Atoi(str[1])
-				y,_ := strconv.Atoi(str[2])
+				x,_ := strconv.Atoi(str[2])
+				y,_ := strconv.Atoi(str[3])
 				enemy.Pos(x,y)
 				enemy.Draw()
 				termbox.Flush()
@@ -219,6 +234,9 @@ LOOP:
 				termbox.Flush()
 			case termbox.KeyArrowRight:
 				fighter.Action("Right")
+				termbox.Flush()
+			case termbox.KeySpace:
+				fighter.Action("Stab")
 				termbox.Flush()
 
 			}

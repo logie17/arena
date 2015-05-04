@@ -7,11 +7,17 @@ import (
 	"bufio"
 	"strings"
 	"strconv"
+	"math"
 )
 
 type Client struct {
 	Id int
 	Message chan string
+	X int
+	Y int
+	EX int
+	EY int
+	HPLevel int
 }
 
 type Server struct {
@@ -25,20 +31,45 @@ type Server struct {
 
 func NewClient(Id int) *Client {
 	ch := make(chan string)
-	return &Client{Id,ch}
+	return &Client{Id,ch,20,20,0,0,5}
 }
 
 func (client *Client) Listen(conn net.Conn){
 	go func() {
 		for line := range client.Message {
 			str := strings.Split(strings.TrimSpace(string(line)),",");
-			iid,_ := strconv.Atoi(str[0])
-			x,_ := strconv.Atoi(str[1])
-			y,_ := strconv.Atoi(str[2])
+			action := str[0]
+			iid,_ := strconv.Atoi(str[1])
+			x,_ := strconv.Atoi(str[2])
+			y,_ := strconv.Atoi(str[3])
 			fmt.Println(str)
-			conn.Write([]byte(fmt.Sprintf("%d,%d,%d\n", iid, x, y)))
+			if action == "stab" && client.NearEnemy() {
+				fmt.Println("HIT!!")
+				client.SendMessage(conn, fmt.Sprintf("hit,%d\n",iid))
+			} else {
+				if iid == client.Id {
+					client.X = x
+					client.Y = y
+				} else {
+					client.EX = x
+					client.EY = y
+				}
+				client.SendMessage(conn, fmt.Sprintf("%s,%d,%d,%d\n", action,iid, x, y))
+			}
 		}
 	}()
+}
+
+func (client *Client) NearEnemy() bool {
+	if (math.Abs(float64(client.X - client.EX)) == 1 && math.Abs(float64((client.Y - client.EX))) == 1 ) {
+		return true
+	} else {
+		return false
+	}
+}
+
+func (client *Client) SendMessage(conn net.Conn, msg string) {
+	conn.Write([]byte(msg))
 }
 
 func NewServer() *Server {
@@ -82,7 +113,7 @@ func (s *Server) Serve() (err error) {
 			break
 		}
 		ch := make(chan string)
-		client := Client{connId, ch}
+		client := Client{connId, ch, 20, 20, 0, 0,5}
 		client.Listen(conn)
 		s.Clients = append(s.Clients,client)
 		go s.handleConn(conn, client)
@@ -128,7 +159,7 @@ func (s *Server) handleStream(conn net.Conn, client Client, done chan string) {
 }
 
 func (s *Server) InitializeStream(conn net.Conn, client Client) {
-	conn.Write([]byte(fmt.Sprintf("%d,20,21\n", client.Id)))
+	conn.Write([]byte(fmt.Sprintf("pos,%d,20,21\n", client.Id)))
 }
 
 func (s *Server) Broadcast(line string) {
