@@ -202,11 +202,10 @@ func main() {
 				enemy.SetId(id)
 			}
 
-			if action == "hit" && id == fighter.id {
-				println("HI!!!!")
-			}
-
-			if id == enemy.Id() {
+			if action == "hit" && id == fighter.Id() {
+				println("Hit!")
+			} 
+			if id == enemy.Id() && action == "pos" {
 				x,_ := strconv.Atoi(str[2])
 				y,_ := strconv.Atoi(str[3])
 				enemy.Pos(x,y)

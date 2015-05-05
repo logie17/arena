@@ -61,7 +61,7 @@ func (client *Client) Listen(conn net.Conn){
 }
 
 func (client *Client) NearEnemy() bool {
-	if (math.Abs(float64(client.X - client.EX)) == 1 && math.Abs(float64((client.Y - client.EX))) == 1 ) {
+	if (math.Abs(float64(client.X - client.EX)) <= 1 && math.Abs(float64((client.Y - client.EY))) <= 1 ) {
 		return true
 	} else {
 		return false
@@ -143,7 +143,7 @@ CONNECTION:
 }
 
 func (s *Server) handleStream(conn net.Conn, client Client, done chan string) {
-	defer close(client.Message)
+//	defer close(client.Message)
 	bufc := bufio.NewReader(conn)
 	s.InitializeStream(conn, client)
 	for {
