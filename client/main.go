@@ -7,12 +7,35 @@ import (
 	"strconv"
 	"fmt"
 	"bufio"
+	"time"
+	"sync"
 )
 
 const (
 	boardWidth  = 79
 	boardHeight = 30
 )
+
+type safeMap struct {
+	myHash map[string]int
+	mutex *sync.RWMutex
+}
+
+func (sf *safeMap) Insert(key string, val int) {
+	sf.mutex.Lock()
+	defer sf.mutex.Unlock()
+	sf.myHash[key] = val
+}
+
+func NewSafeMap() *safeMap {
+	return &safeMap{make(map[string]int), new(sync.RWMutex)}
+}
+
+func (sf *safeMap) Find(key string) int {
+	sf.mutex.RLock()
+	defer sf.mutex.RUnlock()
+	return sf.myHash[key]
+}
 
 func print_msg(x, y int, fg, bg termbox.Attribute, msg string) {
 	for _, c := range msg {
@@ -43,6 +66,7 @@ type Fighter interface {
 	Action(string)
 	SetId(int)
 	Stab()
+	Hit()
 }
 
 func (fighter * fighter) Id() int {
@@ -86,34 +110,58 @@ func (fighter * fighter) Stab() {
 //	fmt.Println("STAB!!!")
 }
 
+func (fighter * fighter) Hit() {
+	termbox.SetCell(fighter.x, fighter.y, fighter.character, termbox.ColorYellow, termbox.ColorBlack)
+	termbox.Flush()
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		termbox.SetCell(fighter.x, fighter.y, fighter.character, termbox.ColorRed, termbox.ColorBlack)
+		termbox.Flush()
+
+	}()
+}
+
 func (fighter * fighter) Down() {
 	fighter.Hide()
-	if fighter.y < 33 {
-		fighter.y++
+	newY := fighter.y + 1
+	if fighter.y < 33  && !fighter.cellIsOccupied(fighter.x, newY) {
+		fighter.y = newY
 	}
 	fighter.Draw()
 }
 
 func (fighter * fighter) Up() {
 	fighter.Hide()
-	if fighter.y > 3 {
-		fighter.y--
+	newY := fighter.y - 1
+	if fighter.y > 3  && !fighter.cellIsOccupied(fighter.x, newY) {
+		fighter.y = newY
 	}
 	fighter.Draw()
 }
 
+func (fighter *fighter) cellIsOccupied(x,y int) bool {
+	enemyPosX := mySafeMap.Find(fmt.Sprintf("%d_x",fighter.id))
+	enemyPosY := mySafeMap.Find(fmt.Sprintf("%d_y",fighter.id))
+	if y == enemyPosY && x == enemyPosX {
+		return true
+	}
+	return false
+}
+
 func (fighter * fighter) Right() {
 	fighter.Hide()
-	if fighter.x < 80 {
-		fighter.x++
+	newX := fighter.x + 1
+	if fighter.x < 80  && !fighter.cellIsOccupied(newX, fighter.y) {
+		fighter.x = newX
 	}
 	fighter.Draw()
 }
 
 func (fighter * fighter) Left() {
 	fighter.Hide()
-	if fighter.x > 0 {
-		fighter.x--
+	newX := fighter.x - 1
+	if fighter.x > 0 && !fighter.cellIsOccupied(newX, fighter.y) {
+		fighter.x = newX
 	}
 	fighter.Draw()
 }
@@ -130,13 +178,14 @@ func (fighter * fighter) Draw() {
 	}
 }
 
+var mySafeMap = NewSafeMap()
+
 func main() {
 	if err := termbox.Init(); err != nil {
 		panic(err)
 	}
 
 	defer termbox.Close()
-
 	termbox.SetInputMode(termbox.InputEsc | termbox.InputMouse)
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 
@@ -179,10 +228,12 @@ func main() {
 	
 	fmt.Println(str)
 
-	//action := str[0]
 	id,_ := strconv.Atoi(str[1])
 	x,_ := strconv.Atoi(str[2])
 	y,_ := strconv.Atoi(str[3])
+
+	mySafeMap.Insert(fmt.Sprintf("%d_x",id),x)
+	mySafeMap.Insert(fmt.Sprintf("%d_y",id),y)
 
 	fighter := NewFighter(x,y,id,"me",cn)
 	fighter.Draw()
@@ -203,11 +254,14 @@ func main() {
 			}
 
 			if action == "hit" && id == fighter.Id() {
-				println("Hit!")
+				enemy.Hit()
 			} 
 			if id == enemy.Id() && action == "pos" {
 				x,_ := strconv.Atoi(str[2])
 				y,_ := strconv.Atoi(str[3])
+				mySafeMap.Insert(fmt.Sprintf("%d_x",id),x)
+				mySafeMap.Insert(fmt.Sprintf("%d_y",id),y)
+
 				enemy.Pos(x,y)
 				enemy.Draw()
 				termbox.Flush()

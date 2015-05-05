@@ -113,7 +113,7 @@ func (s *Server) Serve() (err error) {
 			break
 		}
 		ch := make(chan string)
-		client := Client{connId, ch, 20, 20, 0, 0,5}
+		client := Client{connId, ch, 20, 20 + connId, 0, 0,5}
 		client.Listen(conn)
 		s.Clients = append(s.Clients,client)
 		go s.handleConn(conn, client)
@@ -159,7 +159,7 @@ func (s *Server) handleStream(conn net.Conn, client Client, done chan string) {
 }
 
 func (s *Server) InitializeStream(conn net.Conn, client Client) {
-	conn.Write([]byte(fmt.Sprintf("pos,%d,20,21\n", client.Id)))
+	conn.Write([]byte(fmt.Sprintf("pos,%d,%d,%d\n", client.Id, client.X, client.Y)))
 }
 
 func (s *Server) Broadcast(line string) {
