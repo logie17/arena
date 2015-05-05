@@ -44,7 +44,6 @@ func (client *Client) Listen(conn net.Conn){
 			y,_ := strconv.Atoi(str[3])
 			fmt.Println(str)
 			if action == "stab" && client.NearEnemy() {
-				fmt.Println("HIT!!")
 				client.SendMessage(conn, fmt.Sprintf("hit,%d\n",iid))
 			} else {
 				if iid == client.Id {

@@ -44,10 +44,13 @@ func print_msg(x, y int, fg, bg termbox.Attribute, msg string) {
 	}
 }
 
+var mySafeMap = NewSafeMap()
+
 type fighter struct {
 	x int
 	y int
 	id int
+	enemyid int
 	kind string
 	name string
 	character rune
@@ -67,6 +70,7 @@ type Fighter interface {
 	SetId(int)
 	Stab()
 	Hit()
+	SetEnemyId(int)
 }
 
 func (fighter * fighter) Id() int {
@@ -77,11 +81,18 @@ func (fighter * fighter) SetId(id int){
 	fighter.id = id
 }
 
+func (fighter * fighter) SetEnemyId(id int){
+	fighter.enemyid = id
+}
+
 func NewFighter(x, y, id int, kind string, conn net.Conn) Fighter {
-	return &fighter{x, y, id, kind, "Bad ass", '@', conn}
+	return &fighter{x, y, id, 0, kind, "Bad ass", '@', conn}
 }
 
 func (fighter * fighter) Pos(x, y int) {
+	mySafeMap.Insert(fmt.Sprintf("%d_x",fighter.id),x)
+	mySafeMap.Insert(fmt.Sprintf("%d_y",fighter.id),y)
+	
 	fighter.Hide()
 	fighter.x = x
 	fighter.y = y
@@ -140,8 +151,8 @@ func (fighter * fighter) Up() {
 }
 
 func (fighter *fighter) cellIsOccupied(x,y int) bool {
-	enemyPosX := mySafeMap.Find(fmt.Sprintf("%d_x",fighter.id))
-	enemyPosY := mySafeMap.Find(fmt.Sprintf("%d_y",fighter.id))
+	enemyPosX := mySafeMap.Find(fmt.Sprintf("%d_x",fighter.enemyid))
+	enemyPosY := mySafeMap.Find(fmt.Sprintf("%d_y",fighter.enemyid))
 	if y == enemyPosY && x == enemyPosX {
 		return true
 	}
@@ -177,8 +188,6 @@ func (fighter * fighter) Draw() {
 		termbox.SetCell(fighter.x, fighter.y, fighter.character, termbox.ColorBlue, termbox.ColorBlack)
 	}
 }
-
-var mySafeMap = NewSafeMap()
 
 func main() {
 	if err := termbox.Init(); err != nil {
@@ -251,6 +260,7 @@ func main() {
 
 			if id != fighter.Id() && enemy.Id() == 0 {
 				enemy.SetId(id)
+				fighter.SetEnemyId(id)
 			}
 
 			if action == "hit" && id == fighter.Id() {
@@ -259,9 +269,6 @@ func main() {
 			if id == enemy.Id() && action == "pos" {
 				x,_ := strconv.Atoi(str[2])
 				y,_ := strconv.Atoi(str[3])
-				mySafeMap.Insert(fmt.Sprintf("%d_x",id),x)
-				mySafeMap.Insert(fmt.Sprintf("%d_y",id),y)
-
 				enemy.Pos(x,y)
 				enemy.Draw()
 				termbox.Flush()
