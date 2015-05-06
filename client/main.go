@@ -50,10 +50,13 @@ type fighter struct {
 	x int
 	y int
 	id int
+	enemyx int
+	enemyy int
 	enemyid int
 	kind string
 	name string
 	character rune
+	message chan string
 	conn net.Conn
 }
 
@@ -71,6 +74,12 @@ type Fighter interface {
 	Stab()
 	Hit()
 	SetEnemyId(int)
+	Listen()
+	SendMessage(string)
+}
+
+func (fighter *fighter) SendMessage(line string) {
+	fighter.message<-line
 }
 
 func (fighter * fighter) Id() int {
@@ -86,16 +95,20 @@ func (fighter * fighter) SetEnemyId(id int){
 }
 
 func NewFighter(x, y, id int, kind string, conn net.Conn) Fighter {
-	return &fighter{x, y, id, 0, kind, "Bad ass", '@', conn}
+	message := make(chan string)
+	fighter := &fighter{x, y, id, 0, 0, 0, kind, "Bad ass", '@', message, conn}
+	fighter.Listen()
+	fighter.Draw()
+	termbox.Flush()
+
+	return fighter
 }
 
 func (fighter * fighter) Pos(x, y int) {
-	mySafeMap.Insert(fmt.Sprintf("%d_x",fighter.id),x)
-	mySafeMap.Insert(fmt.Sprintf("%d_y",fighter.id),y)
-	
 	fighter.Hide()
 	fighter.x = x
 	fighter.y = y
+	fighter.Draw()
 }
 
 func (fighter * fighter) Action(action string) {
@@ -115,6 +128,34 @@ func (fighter * fighter) Action(action string) {
 	}
 
 	fighter.conn.Write([]byte(fmt.Sprintf("%s,%d,%d,%d\n",act,fighter.id,fighter.x,fighter.y)))
+}
+
+func (fighter *fighter) Listen() {
+	go func() {
+		for line := range fighter.message {
+			str := strings.Split(strings.TrimSpace(string(line)),",");
+			action := str[0]
+			id,_ := strconv.Atoi(str[1])
+
+			if id == fighter.id && fighter.kind == "enemy" && action == "pos" {
+				x,_ := strconv.Atoi(str[2])
+				y,_ := strconv.Atoi(str[3])
+				mySafeMap.Insert(fmt.Sprintf("%d_x",id),x)
+				mySafeMap.Insert(fmt.Sprintf("%d_y",id),y)
+				fighter.Pos(x,y)
+				termbox.Flush()
+			}
+			
+			if  id != fighter.id {
+ 				fighter.enemyid = id
+			}
+
+			if action == "hit" && id != fighter.id {
+				fighter.Hit()
+			}
+		}
+	}()
+
 }
 
 func (fighter * fighter) Stab() {
@@ -234,44 +275,32 @@ func main() {
 	line, _ := bufc.ReadString('\n')
 	str := strings.Split(strings.TrimSpace(string(line)),",");
 
-	
-	fmt.Println(str)
-
-	id,_ := strconv.Atoi(str[1])
+	fighterId,_ := strconv.Atoi(str[1])
 	x,_ := strconv.Atoi(str[2])
 	y,_ := strconv.Atoi(str[3])
 
-	mySafeMap.Insert(fmt.Sprintf("%d_x",id),x)
-	mySafeMap.Insert(fmt.Sprintf("%d_y",id),y)
+	mySafeMap.Insert(fmt.Sprintf("%d_x",fighterId),x)
+	mySafeMap.Insert(fmt.Sprintf("%d_y",fighterId),y)
 
-	fighter := NewFighter(x,y,id,"me",cn)
-	fighter.Draw()
-	termbox.Flush()
-
-	enemy := NewFighter(0,0, 0,"enemy",cn)
+	fighter := NewFighter(x,y,fighterId,"me",cn)
+	fighters := []Fighter{fighter}
+	var enemy Fighter
 
 	go func() {
 		for {
 			line, _ := bufc.ReadString('\n')
 			str := strings.Split(strings.TrimSpace(string(line)),",");
-
-			action := str[0]
 			id,_ := strconv.Atoi(str[1])
 
-			if id != fighter.Id() && enemy.Id() == 0 {
-				enemy.SetId(id)
-				fighter.SetEnemyId(id)
-			}
-
-			if action == "hit" && id == fighter.Id() {
-				enemy.Hit()
-			} 
-			if id == enemy.Id() && action == "pos" {
+			if id != fighterId && enemy == nil {
 				x,_ := strconv.Atoi(str[2])
 				y,_ := strconv.Atoi(str[3])
-				enemy.Pos(x,y)
-				enemy.Draw()
-				termbox.Flush()
+				enemy = NewFighter(x,y,id,"enemy",cn)
+				fighters = append(fighters, enemy)
+			}
+
+			for _, fighter := range fighters {
+				fighter.SendMessage(line)
 			}
 		}
 	}()
