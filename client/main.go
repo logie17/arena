@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"bufio"
 	"time"
-	"sync"
+	"github.com/logie17/arena/safehash"
 )
 
 const (
@@ -16,26 +16,6 @@ const (
 	boardHeight = 30
 )
 
-type safeMap struct {
-	myHash map[string]int
-	mutex *sync.RWMutex
-}
-
-func (sf *safeMap) Insert(key string, val int) {
-	sf.mutex.Lock()
-	defer sf.mutex.Unlock()
-	sf.myHash[key] = val
-}
-
-func NewSafeMap() *safeMap {
-	return &safeMap{make(map[string]int), new(sync.RWMutex)}
-}
-
-func (sf *safeMap) Find(key string) int {
-	sf.mutex.RLock()
-	defer sf.mutex.RUnlock()
-	return sf.myHash[key]
-}
 
 func print_msg(x, y int, fg, bg termbox.Attribute, msg string) {
 	for _, c := range msg {
@@ -44,7 +24,7 @@ func print_msg(x, y int, fg, bg termbox.Attribute, msg string) {
 	}
 }
 
-var mySafeMap = NewSafeMap()
+var mySafeMap = safehash.NewSafeMap()
 
 type fighter struct {
 	x int
