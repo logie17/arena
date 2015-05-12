@@ -3,9 +3,10 @@ package safehash
 import (
 	"sync"
 )
+
 type safeMap struct {
 	myHash map[string]int
-	mutex *sync.RWMutex
+	mutex  *sync.RWMutex
 }
 
 func (sf *safeMap) Insert(key string, val int) {
