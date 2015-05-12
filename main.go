@@ -8,6 +8,8 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"math/rand"
+	"time"
 )
 
 type Client struct {
@@ -157,7 +159,10 @@ func (s *Server) handleStream(conn net.Conn, client Client, done chan string) {
 }
 
 func (s *Server) InitializeStream(conn net.Conn, client Client) {
-	conn.Write([]byte(fmt.Sprintf("pos,%d,%d,%d\n", client.Id, client.X, client.Y)))
+	rand.Seed(time.Now().Unix())
+	x := rand.Intn(32-3)+3
+	y := rand.Intn(32-3)+3
+	conn.Write([]byte(fmt.Sprintf("pos,%d,%d,%d\n", client.Id, x, y)))
 }
 
 func (s *Server) Broadcast(line string) {

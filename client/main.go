@@ -17,7 +17,7 @@ const (
 	boardHeight = 30
 )
 
-func print_msg(x, y int, fg, bg termbox.Attribute, msg string) {
+func printMsg(x, y int, fg, bg termbox.Attribute, msg string) {
 	for _, c := range msg {
 		termbox.SetCell(x, y, c, fg, bg)
 		x++
@@ -102,27 +102,16 @@ func setupBoard() {
 	termbox.SetInputMode(termbox.InputEsc | termbox.InputMouse)
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 
-	print_msg(int(boardWidth/2)-(int(boardWidth/2)/2), 0, termbox.ColorRed, termbox.ColorBlack, "ARENA!!! FIGHT!!!")
-
-	// termbox.SetCell(0, 2, 0x250C, termbox.ColorRed, termbox.ColorBlack)
-	// termbox.SetCell(boardWidth+1, 0, 0x2510, termbox.ColorRed, termbox.ColorBlack)
-	// termbox.SetCell(0, boardHeight+1, 0x2514, termbox.ColorRed, termbox.ColorBlack)
-	// termbox.SetCell(boardWidth+1, boardHeight+1, 0x2515, termbox.ColorRed, termbox.ColorBlack)
+	printMsg(int(boardWidth/2)-(int(boardWidth/2)/2), 0, termbox.ColorRed, termbox.ColorBlack, "ARENA!!! FIGHT!!!")
 
 	for i := 1; i < 80; i++ {
-		termbox.SetCell(i, 2, 0x2500, termbox.ColorRed, termbox.ColorBlack)
-		termbox.SetCell(i, 31, 0x2500, termbox.ColorRed, termbox.ColorBlack)
+		termbox.SetCell(i, 2, 0x2500, termbox.ColorGreen, termbox.ColorBlack)
+		termbox.SetCell(i, 33, 0x2500, termbox.ColorGreen, termbox.ColorBlack)
 	}
 
 	for i := 2; i < 33; i++ {
-		termbox.SetCell(0, i, 0x2502, termbox.ColorRed, termbox.ColorBlack)
-		termbox.SetCell(80, i, 0x2502, termbox.ColorRed, termbox.ColorBlack)
-	}
-
-	// TODO Chat Box
-	for i := 83; i < 120; i++ {
-		termbox.SetCell(i, 2, 0x2500, termbox.ColorRed, termbox.ColorBlack)
-		termbox.SetCell(i, 31, 0x2500, termbox.ColorRed, termbox.ColorBlack)
+		termbox.SetCell(0, i, 0x2502, termbox.ColorGreen, termbox.ColorBlack)
+		termbox.SetCell(80, i, 0x2502, termbox.ColorGreen, termbox.ColorBlack)
 	}
 
 	termbox.Flush()
