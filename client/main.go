@@ -8,7 +8,8 @@ import (
 	"fmt"
 	"bufio"
 	"time"
-	"github.com/logie17/arena/safehash"
+	"github.com/logie17/arena/client/fighter"
+
 )
 
 const (
@@ -24,191 +25,6 @@ func print_msg(x, y int, fg, bg termbox.Attribute, msg string) {
 	}
 }
 
-var mySafeMap = safehash.NewSafeMap()
-
-type fighter struct {
-	x int
-	y int
-	id int
-	enemyx int
-	enemyy int
-	enemyid int
-	kind string
-	name string
-	character rune
-	message chan string
-	conn net.Conn
-}
-
-type Fighter interface {
-	Draw()
-	Hide()
-	Left()
-	Right()
-	Up()
-	Down()
-	Id() int
-	Pos(int, int)
-	Action(string)
-	SetId(int)
-	Stab()
-	Hit()
-	SetEnemyId(int)
-	Listen()
-	SendMessage(string)
-}
-
-func (fighter *fighter) SendMessage(line string) {
-	fighter.message<-line
-}
-
-func (fighter * fighter) Id() int {
-	return fighter.id
-}
-
-func (fighter * fighter) SetId(id int){
-	fighter.id = id
-}
-
-func (fighter * fighter) SetEnemyId(id int){
-	fighter.enemyid = id
-}
-
-func NewFighter(x, y, id int, kind string, conn net.Conn) Fighter {
-	message := make(chan string)
-	fighter := &fighter{x, y, id, 0, 0, 0, kind, "Bad ass", '@', message, conn}
-	fighter.Listen()
-	fighter.Draw()
-	termbox.Flush()
-
-	return fighter
-}
-
-func (fighter * fighter) Pos(x, y int) {
-	fighter.Hide()
-	fighter.x = x
-	fighter.y = y
-	fighter.Draw()
-}
-
-func (fighter * fighter) Action(action string) {
-	act := "pos"
-	switch action {
-	case "Down":
-		fighter.Down()
-	case "Up":
-		fighter.Up()
-	case "Left":
-		fighter.Left()
-	case "Right":
-		fighter.Right()
-	case "Stab":
-		act = "stab"
-		fighter.Stab()
-	}
-
-	fighter.conn.Write([]byte(fmt.Sprintf("%s,%d,%d,%d\n",act,fighter.id,fighter.x,fighter.y)))
-}
-
-func (fighter *fighter) Listen() {
-	go func() {
-		for line := range fighter.message {
-			str := strings.Split(strings.TrimSpace(string(line)),",");
-			action := str[0]
-			id,_ := strconv.Atoi(str[1])
-
-			if id == fighter.id && fighter.kind == "enemy" && action == "pos" {
-				x,_ := strconv.Atoi(str[2])
-				y,_ := strconv.Atoi(str[3])
-				mySafeMap.Insert(fmt.Sprintf("%d_x",id),x)
-				mySafeMap.Insert(fmt.Sprintf("%d_y",id),y)
-				fighter.Pos(x,y)
-				termbox.Flush()
-			}
-			
-			if  id != fighter.id {
- 				fighter.enemyid = id
-			}
-
-			if action == "hit" && id != fighter.id {
-				fighter.Hit()
-			}
-		}
-	}()
-
-}
-
-func (fighter * fighter) Stab() {
-//	fmt.Println("STAB!!!")
-}
-
-func (fighter * fighter) Hit() {
-	termbox.SetCell(fighter.x, fighter.y, fighter.character, termbox.ColorYellow, termbox.ColorBlack)
-	termbox.Flush()
-	go func() {
-		time.Sleep(100 * time.Millisecond)
-		termbox.SetCell(fighter.x, fighter.y, fighter.character, termbox.ColorRed, termbox.ColorBlack)
-		termbox.Flush()
-
-	}()
-}
-
-func (fighter * fighter) Down() {
-	fighter.Hide()
-	newY := fighter.y + 1
-	if fighter.y < 33  && !fighter.cellIsOccupied(fighter.x, newY) {
-		fighter.y = newY
-	}
-	fighter.Draw()
-}
-
-func (fighter * fighter) Up() {
-	fighter.Hide()
-	newY := fighter.y - 1
-	if fighter.y > 3  && !fighter.cellIsOccupied(fighter.x, newY) {
-		fighter.y = newY
-	}
-	fighter.Draw()
-}
-
-func (fighter *fighter) cellIsOccupied(x,y int) bool {
-	enemyPosX := mySafeMap.Find(fmt.Sprintf("%d_x",fighter.enemyid))
-	enemyPosY := mySafeMap.Find(fmt.Sprintf("%d_y",fighter.enemyid))
-	if y == enemyPosY && x == enemyPosX {
-		return true
-	}
-	return false
-}
-
-func (fighter * fighter) Right() {
-	fighter.Hide()
-	newX := fighter.x + 1
-	if fighter.x < 80  && !fighter.cellIsOccupied(newX, fighter.y) {
-		fighter.x = newX
-	}
-	fighter.Draw()
-}
-
-func (fighter * fighter) Left() {
-	fighter.Hide()
-	newX := fighter.x - 1
-	if fighter.x > 0 && !fighter.cellIsOccupied(newX, fighter.y) {
-		fighter.x = newX
-	}
-	fighter.Draw()
-}
-
-func (fighter * fighter) Hide() {
-	termbox.SetCell(fighter.x, fighter.y, ' ', termbox.ColorBlack, termbox.ColorBlack)
-}
-
-func (fighter * fighter) Draw() {
-	if fighter.kind == "enemy" {
-		termbox.SetCell(fighter.x, fighter.y, fighter.character, termbox.ColorRed, termbox.ColorBlack)
-	} else {
-		termbox.SetCell(fighter.x, fighter.y, fighter.character, termbox.ColorBlue, termbox.ColorBlack)
-	}
-}
 
 func main() {
 	if err := termbox.Init(); err != nil {
@@ -241,7 +57,7 @@ func main() {
 		termbox.SetCell(i, 2, 0x2500, termbox.ColorRed, termbox.ColorBlack)
 		termbox.SetCell(i, 31, 0x2500, termbox.ColorRed, termbox.ColorBlack)
 	}
-
+	termbox.Flush()
 
 	destination := "127.0.0.1:9000";
 	cn, err := net.Dial("tcp", destination);
@@ -259,12 +75,11 @@ func main() {
 	x,_ := strconv.Atoi(str[2])
 	y,_ := strconv.Atoi(str[3])
 
-	mySafeMap.Insert(fmt.Sprintf("%d_x",fighterId),x)
-	mySafeMap.Insert(fmt.Sprintf("%d_y",fighterId),y)
+	reply := make(chan fighter.CommandData,4)
+	fighter1 := fighter.NewFighter(x,y,fighterId,"me",cn, reply)
 
-	fighter := NewFighter(x,y,fighterId,"me",cn)
-	fighters := []Fighter{fighter}
-	var enemy Fighter
+	fighters := []fighter.Fighter{fighter1}
+	var enemy fighter.Fighter
 
 	go func() {
 		for {
@@ -275,7 +90,7 @@ func main() {
 			if id != fighterId && enemy == nil {
 				x,_ := strconv.Atoi(str[2])
 				y,_ := strconv.Atoi(str[3])
-				enemy = NewFighter(x,y,id,"enemy",cn)
+				enemy = fighter.NewFighter(x,y,id,"enemy",cn, reply)
 				fighters = append(fighters, enemy)
 			}
 
@@ -284,6 +99,45 @@ func main() {
 			}
 		}
 	}()
+
+	go func() {
+		for {
+			select {
+			case response := <-reply:
+				val := response.Value
+				action := response.Action
+				x := val[0]
+				y := val[1]
+
+
+				if (action == "FLUSH") {
+					termbox.Flush()
+				} else if ( action == "HIT") {
+					termbox.SetCell(x, y, '@', termbox.ColorYellow, termbox.ColorBlack)
+					termbox.Flush()
+					go func() {
+						time.Sleep(100 * time.Millisecond)
+						termbox.SetCell(x, y, '@', termbox.ColorRed, termbox.ColorBlack)
+						termbox.Flush()
+
+					}()
+				} else if ( action == "HIDE" ) {
+					termbox.SetCell(x, y, ' ', termbox.ColorBlack, termbox.ColorBlack)
+					termbox.Flush()
+				} else if ( action == "DRAW" ) {
+					enemy := val[2]
+					if enemy == 1 {
+						termbox.SetCell(x, y, '@', termbox.ColorRed, termbox.ColorBlack)
+					} else {
+						termbox.SetCell(x, y, '@', termbox.ColorBlue, termbox.ColorBlack)
+					}
+					termbox.Flush()
+				}
+				
+			}
+		}
+	}()
+
 LOOP:
 	for {
 	
@@ -293,19 +147,19 @@ LOOP:
 			case termbox.KeyEsc:
 				break LOOP
 			case termbox.KeyArrowDown:
-				fighter.Action("Down")
+				fighter1.Action("Down")
 				termbox.Flush()
 			case termbox.KeyArrowUp:
-				fighter.Action("Up")
+				fighter1.Action("Up")
 				termbox.Flush()
 			case termbox.KeyArrowLeft:
-				fighter.Action("Left")
+				fighter1.Action("Left")
 				termbox.Flush()
 			case termbox.KeyArrowRight:
-				fighter.Action("Right")
+				fighter1.Action("Right")
 				termbox.Flush()
 			case termbox.KeySpace:
-				fighter.Action("Stab")
+				fighter1.Action("Stab")
 				termbox.Flush()
 
 			}
