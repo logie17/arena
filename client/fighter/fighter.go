@@ -1,7 +1,6 @@
 package fighter
 
 import (
-	"net"
 	"fmt"
 	"strings"
 	"strconv"
@@ -28,21 +27,15 @@ type fighter struct {
 	character rune
 	message chan string
 	reply chan CommandData
-	conn net.Conn
 }
 
 type Fighter interface {
-	Draw()
 	Left()
 	Right()
 	Up()
 	Down()
 	Id() int
-	Pos(int, int)
 	Action(string)
-	SetId(int)
-	Stab()
-	SetEnemyId(int)
 	Listen()
 	SendMessage(string)
 }
@@ -55,20 +48,12 @@ func (fighter * fighter) Id() int {
 	return fighter.id
 }
 
-func (fighter * fighter) SetId(id int){
-	fighter.id = id
-}
-
-func (fighter * fighter) SetEnemyId(id int){
-	fighter.enemyid = id
-}
-
-func NewFighter(x, y, id int, kind string, conn net.Conn, reply chan CommandData) Fighter {
+func NewFighter(x, y, id int, kind string, reply chan CommandData) Fighter {
 	mySafeMap.Insert(fmt.Sprintf("%d_x",id),x)
 	mySafeMap.Insert(fmt.Sprintf("%d_y",id),y)
 
 	message := make(chan string)
-	fighter := &fighter{x, y, id, 0, 0, 0, kind, "Bad ass", '@', message, reply, conn}
+	fighter := &fighter{x, y, id, 0, 0, 0, kind, "Bad ass", '@', message, reply}
 	fighter.Listen()
 	fighter.Draw()
 
@@ -95,10 +80,9 @@ func (fighter * fighter) Action(action string) {
 		fighter.Right()
 	case "Stab":
 		act = "stab"
-		fighter.Stab()
 	}
 
-	fighter.conn.Write([]byte(fmt.Sprintf("%s,%d,%d,%d\n",act,fighter.id,fighter.x,fighter.y)))
+	fighter.reply<-CommandData{act, []int{fighter.id, fighter.x,fighter.y}}
 }
 
 func (fighter *fighter) Listen() {
@@ -114,7 +98,7 @@ func (fighter *fighter) Listen() {
 				mySafeMap.Insert(fmt.Sprintf("%d_x",id),x)
 				mySafeMap.Insert(fmt.Sprintf("%d_y",id),y)
 				fighter.Pos(x,y)
-				fighter.reply<-CommandData{"FLUSH", []int{0,0}}
+				fighter.reply<-CommandData{"FLUSH", []int{fighter.id, 0,0}}
 			}
 			
 			if  id != fighter.id {
@@ -122,15 +106,11 @@ func (fighter *fighter) Listen() {
 			}
 
 			if action == "hit" && id != fighter.id {
-				fighter.reply<-CommandData{"HIT", []int{fighter.x,fighter.y}}
+				fighter.reply<-CommandData{"HIT", []int{fighter.id, fighter.x,fighter.y}}
 			}
 		}
 	}()
 
-}
-
-func (fighter * fighter) Stab() {
-//	fmt.Println("STAB!!!")
 }
 
 func (fighter * fighter) Down() {
@@ -180,13 +160,13 @@ func (fighter * fighter) Left() {
 }
 
 func (fighter * fighter) Hide() {
-	fighter.reply<-CommandData{"HIDE", []int{fighter.x, fighter.y}}
+	fighter.reply<-CommandData{"HIDE", []int{fighter.id, fighter.x, fighter.y}}
 }
 
 func (fighter * fighter) Draw() {
 	if fighter.kind == "enemy" {
-		fighter.reply<-CommandData{"DRAW", []int{fighter.x, fighter.y, 1}}
+		fighter.reply<-CommandData{"DRAW", []int{fighter.id, fighter.x, fighter.y, 1}}
 	} else {
-		fighter.reply<-CommandData{"DRAW", []int{fighter.x, fighter.y, 0}}
+		fighter.reply<-CommandData{"DRAW", []int{fighter.id, fighter.x, fighter.y, 0}}
 	}
 }
