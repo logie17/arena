@@ -7,13 +7,6 @@ import (
 	"strings"
 )
 
-type CommandData struct {
-	Action string
-	Value  []int
-}
-
-var mySafeMap = safehash.NewSafeMap()
-
 type fighter struct {
 	x         int
 	y         int
@@ -38,6 +31,14 @@ type Fighter interface {
 	Listen()
 	SendMessage(string)
 }
+
+type CommandData struct {
+	Action string
+	Value  []int
+}
+
+var mySafeMap = safehash.NewSafeMap()
+
 
 func (fighter *fighter) SendMessage(line string) {
 	fighter.message <- line
@@ -106,6 +107,15 @@ func (fighter *fighter) Listen() {
 
 			if action == "hit" && id != fighter.id {
 				fighter.reply <- CommandData{"HIT", []int{fighter.id, fighter.x, fighter.y}}
+			}
+
+			if id != fighter.id && action == "die" {
+				fighter.reply <- CommandData{"KILL", []int{fighter.id, fighter.x, fighter.y}}
+			}
+
+			if id == fighter.id && action == "die" {
+				fighter.reply <- CommandData{"WIN", []int{fighter.id, fighter.x, fighter.y}}
+
 			}
 		}
 	}()

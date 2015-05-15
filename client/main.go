@@ -88,6 +88,12 @@ func handleFighterActions(cn net.Conn, reply chan fighter.CommandData) {
 						termbox.SetCell(x, y, '@', termbox.ColorBlue, termbox.ColorBlack)
 					}
 					termbox.Flush()
+				} else if action == "KILL" {
+					println("YOU DIED!")
+					os.Exit(1)
+				} else if action == "WIN" {
+					println("YOU WIN!!!")
+					os.Exit(1)
 				} else {
 					cn.Write([]byte(fmt.Sprintf("%s,%d,%d,%d\n", action, id, x, y)))
 				}
