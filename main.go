@@ -23,11 +23,8 @@ type Client struct {
 }
 
 type Server struct {
-	Fighter1Port   uint16
-	Hostname       string
 	Logger         *log.Logger
 	Clients        []Client
-	clientListener net.Listener
 	serverListener net.Listener
 }
 
@@ -81,18 +78,6 @@ func (client *Client) SendMessage(conn net.Conn, msg string) {
 
 func NewServer() *Server {
 	s := new(Server)
-	s.Fighter1Port = 9000
-	s.Hostname = "localhost"
-
-	addrs, _ := net.InterfaceAddrs()
-	for _, addr := range addrs {
-		names, _ := net.LookupAddr(addr.String())
-		if len(names) > 0 {
-			s.Hostname = names[0]
-			break
-		}
-	}
-
 	s.Clients = []Client{}
 	return s
 
@@ -105,7 +90,7 @@ func (s *Server) log(v interface{}) {
 }
 
 func (s *Server) Serve() (err error) {
-	s.serverListener, err = net.Listen("tcp", fmt.Sprint("127.0.0.1:", s.Fighter1Port))
+	s.serverListener, err = net.Listen("tcp", fmt.Sprint("127.0.0.1:", 9000))
 	if err != nil {
 		s.log(err)
 		return err
@@ -183,5 +168,4 @@ func main() {
 	if err != nil {
 		println(err)
 	}
-
 }
