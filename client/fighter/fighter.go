@@ -15,7 +15,6 @@ type fighter struct {
 	enemyy    int
 	enemyid   int
 	kind      string
-	name      string
 	character rune
 	message   chan string
 	reply     chan CommandData
@@ -51,12 +50,13 @@ func (fighter *fighter) Id() int {
 func NewFighter(x, y, id int, kind string, reply chan CommandData) Fighter {
 	mySafeMap.Insert(fmt.Sprintf("%d_x", id), x)
 	mySafeMap.Insert(fmt.Sprintf("%d_y", id), y)
-
 	message := make(chan string)
-	fighter := &fighter{x, y, id, 0, 0, 0, kind, "Bad ass", '@', message, reply}
+	fighter := &fighter{
+            x: x, y: y, id: id, kind: kind, character: '@',
+            message: message, reply: reply,
+        }
 	fighter.Listen()
 	fighter.Draw()
-
 	return fighter
 }
 
@@ -118,6 +118,7 @@ func (fighter *fighter) Listen() {
 
 			}
 		}
+		close(fighter.message)
 	}()
 
 }
@@ -140,15 +141,6 @@ func (fighter *fighter) Up() {
 	fighter.Draw()
 }
 
-func (fighter *fighter) cellIsOccupied(x, y int) bool {
-	enemyPosX := mySafeMap.Find(fmt.Sprintf("%d_x", fighter.enemyid))
-	enemyPosY := mySafeMap.Find(fmt.Sprintf("%d_y", fighter.enemyid))
-	if y == enemyPosY && x == enemyPosX {
-		return true
-	}
-	return false
-}
-
 func (fighter *fighter) Right() {
 	fighter.Hide()
 	newX := fighter.x + 1
@@ -168,14 +160,23 @@ func (fighter *fighter) Left() {
 	fighter.Draw()
 }
 
+func (fighter *fighter) cellIsOccupied(x, y int) bool {
+	enemyPosX := mySafeMap.Find(fmt.Sprintf("%d_x", fighter.enemyid))
+	enemyPosY := mySafeMap.Find(fmt.Sprintf("%d_y", fighter.enemyid))
+	if y == enemyPosY && x == enemyPosX {
+		return true
+	}
+	return false
+}
+
 func (fighter *fighter) Hide() {
-	fighter.reply <- CommandData{"HIDE", []int{fighter.id, fighter.x, fighter.y}}
+	fighter.reply<-CommandData{"HIDE", []int{fighter.id, fighter.x, fighter.y}}
 }
 
 func (fighter *fighter) Draw() {
 	if fighter.kind == "enemy" {
-		fighter.reply <- CommandData{"DRAW", []int{fighter.id, fighter.x, fighter.y, 1}}
+		fighter.reply<-CommandData{"DRAW", []int{fighter.id, fighter.x, fighter.y, 1}}
 	} else {
-		fighter.reply <- CommandData{"DRAW", []int{fighter.id, fighter.x, fighter.y, 0}}
+		fighter.reply<-CommandData{"DRAW", []int{fighter.id, fighter.x, fighter.y, 0}}
 	}
 }
