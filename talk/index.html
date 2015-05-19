@@ -378,7 +378,7 @@ func (client *Client) sendPosMsg(conn net.Conn, action string, id, x, y int) {
         </section>
 
         <section>
-                      <section>
+          <section>
 	    <h2>Server Side Code</h2>
 	    <pre class="fragment current-visible"><code data-trim contenteditable>
 func main() {
@@ -398,9 +398,9 @@ func main() {
 }
 
 	    </code></pre>
-            </section>
+          </section>
 
-            <section>
+          <section>
 	    <h2>Listen to Server</h2>
 	    <pre class="fragment current-visible"><code data-trim contenteditable>
 func readFromServer(fighterId int, fighters []fighter.Fighter,
@@ -422,9 +422,9 @@ func readFromServer(fighterId int, fighters []fighter.Fighter,
 	}()
 }
 	    </code></pre>
-            </section>
-            <section>
-              <h2>Handle Key Events</h2>
+          </section>
+           <section>
+            <h2>Handle Key Events</h2>
 	    <pre class="fragment current-visible"><code data-trim contenteditable>
 func handleKeyEvents(f fighter.Fighter) {
 	for {
@@ -439,13 +439,62 @@ func handleKeyEvents(f fighter.Fighter) {
 		}
 	}
 }
-</code></pre>
-              </section>
+            </code></pre>
+          </section>
         </section>
 
+        <section>
+          <section>
+            <h2>Let's talk more about concurency</h2>
+            <p>Go supplies a great sync library</p>
+          </section>
+          <section>
+            <h2>Safe Hash</h2>
+	    <pre class="fragment current-visible"><code data-trim contenteditable>
+package safehash
 
+import (
+	"sync"
+)
+
+type safeMap struct {
+	myHash map[string]int
+	mutex  *sync.RWMutex
+}
+              </code></pre>
+          </section>
+          <section>
+            <h2>Safe Hash</h2>
+	    <pre class="fragment current-visible"><code data-trim contenteditable>
+func (sf *safeMap) Insert(key string, val int) {
+	sf.mutex.Lock()
+	defer sf.mutex.Unlock()
+	sf.myHash[key] = val
+}
+
+func NewSafeMap() *safeMap {
+	return &safeMap{make(map[string]int), new(sync.RWMutex)}
+}
+
+func (sf *safeMap) Find(key string) int {
+	sf.mutex.RLock()
+	defer sf.mutex.RUnlock()
+	return sf.myHash[key]
+}
+
+              </code>
+            </pre>
+          </section>
+
+        </section>
+        <section>
+          <h2>In Summary</h2>
+          <p>...</p>
+        </section>
         <section>
           <h2>Thank you!</h2>
+          <p>The people I love</p>
+          <p>MediaMath for giving me this opportunity</p>
         </section>
 
 
