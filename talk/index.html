@@ -127,8 +127,6 @@ package fighter
 import (
 	"fmt"
 	"github.com/logie17/arena/safehash"
-	"strconv"
-	"strings"
 )
 
 	    </code></pre>
@@ -146,10 +144,9 @@ type fighter struct {
 	enemyid   int
 	kind      string
 	character rune
-	message   chan string
-	reply     chan CommandData
+	message   chan Line
+	reply     chan Line
 }
-
 	    </code></pre>
           </section>
           <section>
@@ -179,14 +176,14 @@ func(count *Count) Increment() Count {
           <section>
             <h2>Objects and Methods</h2>
 	    <pre class="fragment current-visible"><code data-trim contenteditable>
-func NewFighter(x, y, id int, kind string, reply chan CommandData) Fighter {
+func NewFighter(x, y, id int, kind string, reply chan Line) Fighter {
 	mySafeMap.Insert(fmt.Sprintf("%d_x", id), x)
 	mySafeMap.Insert(fmt.Sprintf("%d_y", id), y)
-	message := make(chan string)
+	message := make(chan Line)
 	fighter := &fighter{
-            x: x, y: y, id: id, kind: kind, character: '@',
-            message: message, reply: reply,
-        }
+		x: x, y: y, id: id, kind: kind, character: '@',
+		message: message, reply: reply,
+	}
 	fighter.Listen()
 	fighter.Draw()
 	return fighter
@@ -236,7 +233,7 @@ func TestMoveLeft(t *testing.T) {
 		subject := NewFighter(4,5,2,"me",reply)
 		subject.Left()
 	}()
-        if response:=<-reply; response.Action != "DRAW" {
+        if response:=<-reply; response.Action != "draw_me" {
 		t.Errorf("A draw action should come back in the reply")
 	}
 }
@@ -342,23 +339,11 @@ func (s *Server) Broadcast(line string) {
 	}
 }
 
-	     </code></pre>
-            <section>
-              <h2></h2>
-	      <pre class="fragment current-visible"><code data-trim contenteditable>
-func (s *Server) Broadcast(line string) {
-	s.Log(line)
-	for _, client := range s.Clients {
-		client.Message <- string(line)
-	}
-}
-
 	                          </code></pre>
-
-            </section>
-            <section>
-              <h2>Message Handling</h2>
-	      <pre class="fragment current-visible"><code data-trim contenteditable>
+          </section>
+          <section>
+            <h2>Message Handling</h2>
+	    <pre class="fragment current-visible"><code data-trim contenteditable>
 go func() {
 	for line := range client.Message {
 		action, id, x, y := client.parseLine(string(line))
@@ -372,9 +357,9 @@ go func() {
 	    </code></pre>
 
           </section>
-            <section>
-              <h2>Message Handling</h2>
-	      <pre class="fragment current-visible"><code data-trim contenteditable>
+          <section>
+            <h2>Message Handling</h2>
+	    <pre class="fragment current-visible"><code data-trim contenteditable>
 func (client *Client) sendPosMsg(conn net.Conn, action string, id, x, y int) {
 	if id == client.Id {
 		client.X = x
@@ -392,24 +377,70 @@ func (client *Client) sendPosMsg(conn net.Conn, action string, id, x, y int) {
 
         </section>
 
-          <section>
+        <section>
+                      <section>
+	    <h2>Server Side Code</h2>
+	    <pre class="fragment current-visible"><code data-trim contenteditable>
+func main() {
+        ...
+        cn := establishConnection()
+	defer cn.Close()
+	bufc := bufio.NewReader(cn)
+
+	reply := make(chan fighter.Line, 4)
+	defer close(reply)
+	x, y, fighterId := readConnectionLine(bufc)
+	player := fighter.NewFighter(x, y, fighterId, "me", reply)
+	fighters := []fighter.Fighter{player}
+	readFromServer(fighterId, fighters, bufc, reply)
+	handleFighterActions(cn, reply)
+	handleKeyEvents(player)
+}
+
+	    </code></pre>
+            </section>
+
             <section>
-	    <h2>Client Side Code</h2>
+	    <h2>Listen to Server</h2>
 	    <pre class="fragment current-visible"><code data-trim contenteditable>
-const (
-    Rate       = 1 
-    Setting    = 2  
-    Adjustment = 3 
-)
+func readFromServer(fighterId int, fighters []fighter.Fighter,
+      bufc *bufio.Reader, reply chan fighter.Line) {
+	go func() {
+		for {
+			line, _ := bufc.ReadString('\n') // Blocks
+			data := parseLine(string(line))
+                        if data.Id != fighterId
+                           && isNewEnemy(data.Id, fighters) {
+                               enemy := fighter.NewFighter(data.X,
+                                        data.Y, data.Id, "enemy", reply)
+				fighters = append(fighters, enemy)
+			}
+			for _, fighter := range fighters {
+				fighter.SendMessage(data)
+			}
+		}
+	}()
+}
 	    </code></pre>
+            </section>
+            <section>
+              <h2>Handle Key Events</h2>
 	    <pre class="fragment current-visible"><code data-trim contenteditable>
-const (
-    Rate       = iota 
-    Setting       
-    Adjustment   
-)
-	    </code></pre>
-          </section>
+func handleKeyEvents(f fighter.Fighter) {
+	for {
+		switch ev := termbox.PollEvent(); ev.Type {
+		case termbox.EventKey:
+			switch ev.Key {
+			case termbox.KeyEsc:
+				os.Exit(0)
+			case termbox.KeyArrowDown:
+				f.Action("Down")
+			}
+		}
+	}
+}
+</code></pre>
+              </section>
         </section>
 
 
