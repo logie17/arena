@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+
+    <title>Perl To Go</title>
+
+    <meta name="description" content="Perl to Go Talk">
+    <meta name="author" content="Logan Bell">
+
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+    <link rel="stylesheet" href="css/reveal.css">
+    <link rel="stylesheet" href="css/theme/sky.css" id="theme">
+
+    <!-- Code syntax highlighting -->
+    <link rel="stylesheet" href="lib/css/zenburn.css">
+
+    <!-- Printing and PDF exports -->
+    <script>
+      var link = document.createElement( 'link' );
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+      document.getElementsByTagName( 'head' )[0].appendChild( link );
+    </script>
+
+    <!--[if lt IE 9]>
+	<script src="lib/js/html5shiv.js"></script>
+	<![endif]-->
+  </head>
+
+  <body>
+    <div class="reveal">
+
+      <!-- Any section element inside of this container is displayed as a slide -->
+      <div class="slides">
+	<section>
+	  <h1>Perl 2 Go</h1>
+	  <h3>A Survey</h3>
+	  <p>
+	    <small><a
+                      href="http://www.loganbell.org">Logan Bell</a> / <a href="http://twitter.com/epochbell">@epochbell</a></small>
+	  </p>
+	</section>
+
+        <section>
+	  <h2>Why Go?</h2>
+	  <ul>
+            <li>We use Go <a href="http://www.mediamath.com">MediaMath</a></li>
+            <li>Thrill</li>
+            <li>Edifying</li>
+	  </ul>
+        </section>
+
+        <section>
+	  <h2>History Of Go</h2>
+          <ul>
+            <li>Created at Google by Robert Griesemer, Rob Pike and Ken Thompson in 2007/2008.</li>
+            <li>Became a public open source project in 2009</li>
+          </ul>
+        </section>
+
+        <section>
+	  <h2>This talk</h2>
+          <ul>
+            <li>Build A Game!</li>
+            <li>Best way to learn</li>
+            <li>Oh I also use it for work too</li>
+            <li>Oh, I'm also not an expert, so be nice :)</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>What I hope One will get from this talk</h2>
+          <ol>
+            <li>Go over Arena</li>
+            <li>Touch on various Go semantics</li>
+            <li>Go over other areas of interest</li>
+            <li>Try to answer some questions if I can</li>
+          </ol>
+        </section>
+
+        <section>
+	  <h2>Arena!</h2>
+          <p>Server client model</p>
+          <p>HP of just 5</p>
+          <p>Simple, demonstrates most of the
+            constructs of Go</p>
+        </section>
+
+        <section>
+	  <h2>Arena!</h2>
+          <img data-src="../arena.png">
+        </section>
+
+        <section>
+          <h2>Typical Game Play</h2>
+          <ul>
+            <li>Left, right down, up arrows</li>
+            <li>First one to 5 wins</li>
+            <li>Only 2 clients</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>What it'll demonstrate</h2>
+          <ul>
+            <li>Concurrency patterns</li>
+            <li>Structs and interfaces</li>
+            <li>Types</li>
+            <li>Control structures</li>
+            <li>Unit testing</li>
+            <li>and more</li>
+          </ul>
+        </section>
+
+        <section>
+          <section>
+            <h2>Fighter</h2>
+	    <pre class="fragment current-visible"><code data-trim contenteditable>
+package fighter
+
+import (
+	"fmt"
+	"github.com/logie17/arena/safehash"
+	"strconv"
+	"strings"
+)
+
+	    </code></pre>
+          </section>
+
+          <section>
+            <h2>Fighter</h2>
+	    <pre class="fragment current-visible"><code data-trim contenteditable>
+type fighter struct {
+	x         int
+	y         int
+	id        int
+	enemyx    int
+	enemyy    int
+	enemyid   int
+	kind      string
+	character rune
+	message   chan string
+	reply     chan CommandData
+}
+
+	    </code></pre>
+          </section>
+          <section>
+	    <h2>Types</h2>
+            <ul>
+              <li>int</li>
+              <li>string</li>
+              <li>rune</li>
+              <li>struct</li>
+            </ul>
+          </section>
+          <section>
+	    <h2>Type Keyword</h2>
+	    <pre class="fragment current-visible"><code data-trim contenteditable>
+type Count int
+func main() {
+	var c Count = 1
+	fmt.Println(c.Increment()
+}
+
+func(count *Count) Increment() Count {
+	*count++
+	return *count
+}
+            </code></pre>
+          </section>
+          <section>
+            <h2>Objects and Methods</h2>
+	    <pre class="fragment current-visible"><code data-trim contenteditable>
+func NewFighter(x, y, id int, kind string, reply chan CommandData) Fighter {
+	mySafeMap.Insert(fmt.Sprintf("%d_x", id), x)
+	mySafeMap.Insert(fmt.Sprintf("%d_y", id), y)
+	message := make(chan string)
+	fighter := &fighter{
+            x: x, y: y, id: id, kind: kind, character: '@',
+            message: message, reply: reply,
+        }
+	fighter.Listen()
+	fighter.Draw()
+	return fighter
+}
+	    </code></pre>
+          </section>
+          <section>
+            <h2>Objects and Methods</h2>
+	    <pre class="fragment current-visible"><code data-trim contenteditable>
+func (fighter *fighter) Down() {
+	fighter.Hide()
+	newY := fighter.y + 1
+	if fighter.y < 33 && !fighter.cellIsOccupied(fighter.x, newY) {
+		fighter.y = newY
+	}
+	fighter.Draw()
+}
+		       </code></pre>
+          </section>
+          <section>
+            <h2>Interfaces</h2>
+            <p>Drive behavior of an object</p>
+	    <pre class="fragment current-visible"><code data-trim contenteditable>
+type Fighter interface {
+	Left()
+	Right()
+	Up()
+	Down()
+	Id() int
+	Action(string)
+	Listen()
+	SendMessage(string)
+}
+
+	    </code></pre>
+          </section>
+          <section>
+            <h2>Unit Testing</h2>
+	    <pre class="fragment current-visible"><code data-trim contenteditable>
+package fighter
+import "testing"
+func TestMoveLeft(t *testing.T) {
+	enemyReply := make(chan CommandData, 1)
+	NewFighter(4,4,1,"enemy", enemyReply)
+	reply := make(chan CommandData)
+	go func() {
+		subject := NewFighter(4,5,2,"me",reply)
+		subject.Left()
+	}()
+        if response:=<-reply; response.Action != "DRAW" {
+		t.Errorf("A draw action should come back in the reply")
+	}
+}
+			      </code></pre>
+          </section>
+          <section>
+            <h2>Run the test</h2>
+	    <pre class="fragment current-visible"><code data-trim contenteditable>
+$ go test ./...
+ok  github.com/logie17/arena/client/fighter0.006s
+			      </code></pre>
+          </section>
+
+        </section>
+
+        <section>
+          <section>
+            <h2>Server</h2>
+            <ul>
+              <li>Need to accept multiple
+                connection</li>
+              <li>Need to broadcast messages to
+                clients</li>
+              <li>This where Go shines</li>
+            </ul>
+          </section>
+          <section>
+            <h2>Concurrency</h2>
+            <p>Go Routines</p>
+            <p>Channels</p>
+            <p>Deeply rooted in Communicating
+              Sequential Processes (CSP)</p>
+            <p>Long history in other similar
+              languages</p>
+          </section>
+          <section>
+            <h2>Let's dive in</h2>
+	    <pre class="fragment current-visible"><code data-trim contenteditable>
+func main() {
+	s := NewServer()
+	err := s.Serve()
+	if err != nil {
+		println(err)
+	}
+}
+	    </code></pre>
+          </section>
+          <section>
+            <h2>Listen for connections</h2>
+	    <pre class="fragment current-visible"><code data-trim contenteditable>
+func (s *Server) Serve() (err error) {
+	s.serverListener, err = net.Listen("tcp", fmt.Sprint("127.0.0.1:", 9000))
+	if err != nil {
+		s.Log(err)
+		return err
+	}
+
+	defer s.serverListener.Close()
+	connId := 1
+	for {
+		//This blocks
+		conn, err := s.serverListener.Accept()
+		if err != nil {
+			s.Log(err)
+			break
+		}
+		client := NewClient(connId)
+		client.Listen(conn) // We'll come back to this
+		s.Clients = append(s.Clients, client)
+		go s.handleConn(conn, client)
+		connId++
+	}
+	return nil
+
+}
+	    </code></pre>
+          </section>
+          <section>
+            <h2>We have a connection now what?</h2>
+	    <pre class="fragment current-visible"><code data-trim contenteditable>
+func (s *Server) handleConn(conn net.Conn, client *Client) {
+	s.Log("trying to handle connection")
+	bufc := bufio.NewReader(conn)
+	s.Broadcast(fmt.Sprintf("pos,%d,%d,%d\n", client.Id, client.X, client.Y))
+	for {
+		line, _, err := bufc.ReadLine()
+		if err != nil {
+			break
+		}
+		s.Broadcast(string(line))
+	}
+}
+
+	    </code></pre>
+          </section>
+          <section>
+            <h2>Using Channels to Broadcast</h2>
+	    <pre class="fragment current-visible"><code data-trim contenteditable>
+func (s *Server) Broadcast(line string) {
+	s.Log(line)
+	for _, client := range s.Clients {
+		client.Message <- string(line)
+	}
+}
+
+	     </code></pre>
+            <section>
+              <h2></h2>
+	      <pre class="fragment current-visible"><code data-trim contenteditable>
+func (s *Server) Broadcast(line string) {
+	s.Log(line)
+	for _, client := range s.Clients {
+		client.Message <- string(line)
+	}
+}
+
+	                          </code></pre>
+
+            </section>
+            <section>
+              <h2>Message Handling</h2>
+	      <pre class="fragment current-visible"><code data-trim contenteditable>
+go func() {
+	for line := range client.Message {
+		action, id, x, y := client.parseLine(string(line))
+		if action == "stab" && client.NearEnemy() {
+			client.sendAttackMsg(conn, action, id)
+		} else {
+			client.sendPosMsg(conn, action, id, x, y)
+		}
+	}
+}()
+	    </code></pre>
+
+          </section>
+            <section>
+              <h2>Message Handling</h2>
+	      <pre class="fragment current-visible"><code data-trim contenteditable>
+func (client *Client) sendPosMsg(conn net.Conn, action string, id, x, y int) {
+	if id == client.Id {
+		client.X = x
+		client.Y = y
+	} else {
+		client.EX = x
+		client.EY = y
+	}
+	client.SendMessage(conn, fmt.Sprintf("%s,%d,%d,%d\n", action, id, x, y))
+}
+
+	      </code></pre>
+
+          </section>
+
+        </section>
+
+          <section>
+            <section>
+	    <h2>Client Side Code</h2>
+	    <pre class="fragment current-visible"><code data-trim contenteditable>
+const (
+    Rate       = 1 
+    Setting    = 2  
+    Adjustment = 3 
+)
+	    </code></pre>
+	    <pre class="fragment current-visible"><code data-trim contenteditable>
+const (
+    Rate       = iota 
+    Setting       
+    Adjustment   
+)
+	    </code></pre>
+          </section>
+        </section>
+
+
+        <section>
+          <h2>Thank you!</h2>
+        </section>
+
+
+      </div>
+      <div id="media-math-logo" style="background-size:
+                                       100px 64px;background-repeat:
+                                       no-repeat;background-position: 5%
+                                       bottom;background-image:
+                                       url('./MediaMath_Logo_Border_CMYK_notagline.png');
+                                       width: 100px; height:64px; position: absolute;
+                                       bottom:10px; left: 10px;"></div>
+
+    </div>
+    
+    <script src="lib/js/head.min.js"></script>
+    <script src="js/reveal.js"></script>
+
+    <script>
+
+      // Full list of configuration options available at:
+      // https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+      controls: true,
+      progress: true,
+      history: true,
+      center: true,
+      
+      transition: 'slide', // none/fade/slide/convex/concave/zoom
+      
+      // Optional reveal.js plugins
+      dependencies: [
+      { src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+      { src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+      { src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+      { src: 'plugin/highlight/highlight.js', async: true, condition: function() { return !!document.querySelector( 'pre code' ); }, callback: function() { hljs.initHighlightingOnLoad(); } },
+      { src: 'plugin/zoom-js/zoom.js', async: true },
+      { src: 'plugin/notes/notes.js', async: true }
+      ]
+      });
+      
+    </script>
+
+  </body>
+</html>
