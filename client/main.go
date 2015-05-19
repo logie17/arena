@@ -135,7 +135,7 @@ func establishConnection() net.Conn {
 	return cn
 }
 
-func readConnectionLine(bufc *bufio.Reader)(int, int, int) { 
+func readConnectionLine(bufc *bufio.Reader) (int, int, int) {
 	line, err := bufc.ReadString('\n')
 	if err != nil {
 		fmt.Println("Unable to read connection string", err.Error())
@@ -149,13 +149,13 @@ func readConnectionLine(bufc *bufio.Reader)(int, int, int) {
 		fmt.Println("Unable to get Fighter ID from server: ", err.Error())
 		os.Exit(1)
 	}
-	
+
 	x, err := strconv.Atoi(str[2])
 	if err != nil {
 		fmt.Println("Unable to get Fighter X from server: ", err.Error())
 		os.Exit(1)
 	}
-	
+
 	y, err := strconv.Atoi(str[3])
 	if err != nil {
 		fmt.Println("Unable to get Figher Y from server: ", err.Error())
@@ -211,4 +211,3 @@ func main() {
 	handleFighterActions(cn, reply)
 	handleKeyEvents(player)
 }
-

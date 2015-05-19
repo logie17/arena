@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"math/rand"
 	"net"
 	"strconv"
 	"strings"
-	"math/rand"
 	"time"
 )
 
@@ -31,10 +31,10 @@ type Server struct {
 func NewClient(Id int) *Client {
 	ch := make(chan string)
 	rand.Seed(time.Now().Unix())
-	x := rand.Intn(32-3)+3
-	y := rand.Intn(32-3)+3
-	
-	return &Client{Id: Id, Message: ch, X: x, Y:y, HPLevel: 5}
+	x := rand.Intn(32-3) + 3
+	y := rand.Intn(32-3) + 3
+
+	return &Client{Id: Id, Message: ch, X: x, Y: y, HPLevel: 5}
 }
 
 func (client *Client) Listen(conn net.Conn) {
@@ -61,9 +61,9 @@ func (client *Client) sendPosMsg(conn net.Conn, action string, id, x, y int) {
 	client.SendMessage(conn, fmt.Sprintf("%s,%d,%d,%d\n", action, id, x, y))
 }
 
-func (client *Client) sendAttackMsg(conn net.Conn, action string, id int){
+func (client *Client) sendAttackMsg(conn net.Conn, action string, id int) {
 	client.HPLevel--
-	if (client.HPLevel == 0 ) {
+	if client.HPLevel == 0 {
 		client.SendMessage(conn, fmt.Sprintf("die,%d\n", id))
 	} else {
 		client.SendMessage(conn, fmt.Sprintf("hit,%d\n", id))

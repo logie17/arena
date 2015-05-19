@@ -38,7 +38,6 @@ type CommandData struct {
 
 var mySafeMap = safehash.NewSafeMap()
 
-
 func (fighter *fighter) SendMessage(line string) {
 	fighter.message <- line
 }
@@ -52,9 +51,9 @@ func NewFighter(x, y, id int, kind string, reply chan CommandData) Fighter {
 	mySafeMap.Insert(fmt.Sprintf("%d_y", id), y)
 	message := make(chan string)
 	fighter := &fighter{
-            x: x, y: y, id: id, kind: kind, character: '@',
-            message: message, reply: reply,
-        }
+		x: x, y: y, id: id, kind: kind, character: '@',
+		message: message, reply: reply,
+	}
 	fighter.Listen()
 	fighter.Draw()
 	return fighter
@@ -170,13 +169,13 @@ func (fighter *fighter) cellIsOccupied(x, y int) bool {
 }
 
 func (fighter *fighter) Hide() {
-	fighter.reply<-CommandData{"HIDE", []int{fighter.id, fighter.x, fighter.y}}
+	fighter.reply <- CommandData{"HIDE", []int{fighter.id, fighter.x, fighter.y}}
 }
 
 func (fighter *fighter) Draw() {
 	if fighter.kind == "enemy" {
-		fighter.reply<-CommandData{"DRAW", []int{fighter.id, fighter.x, fighter.y, 1}}
+		fighter.reply <- CommandData{"DRAW", []int{fighter.id, fighter.x, fighter.y, 1}}
 	} else {
-		fighter.reply<-CommandData{"DRAW", []int{fighter.id, fighter.x, fighter.y, 0}}
+		fighter.reply <- CommandData{"DRAW", []int{fighter.id, fighter.x, fighter.y, 0}}
 	}
 }
