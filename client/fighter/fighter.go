@@ -3,9 +3,14 @@ package fighter
 import (
 	"fmt"
 	"github.com/logie17/arena/safehash"
-	"strconv"
-	"strings"
 )
+
+type Line struct {
+	Action string
+	Id     int
+	X      int
+	Y      int
+}
 
 type fighter struct {
 	x         int
@@ -16,8 +21,8 @@ type fighter struct {
 	enemyid   int
 	kind      string
 	character rune
-	message   chan string
-	reply     chan CommandData
+	message   chan Line
+	reply     chan Line
 }
 
 type Fighter interface {
@@ -28,17 +33,12 @@ type Fighter interface {
 	Id() int
 	Action(string)
 	Listen()
-	SendMessage(string)
-}
-
-type CommandData struct {
-	Action string
-	Value  []int
+	SendMessage(Line)
 }
 
 var mySafeMap = safehash.NewSafeMap()
 
-func (fighter *fighter) SendMessage(line string) {
+func (fighter *fighter) SendMessage(line Line) {
 	fighter.message <- line
 }
 
@@ -46,10 +46,10 @@ func (fighter *fighter) Id() int {
 	return fighter.id
 }
 
-func NewFighter(x, y, id int, kind string, reply chan CommandData) Fighter {
+func NewFighter(x, y, id int, kind string, reply chan Line) Fighter {
 	mySafeMap.Insert(fmt.Sprintf("%d_x", id), x)
 	mySafeMap.Insert(fmt.Sprintf("%d_y", id), y)
-	message := make(chan string)
+	message := make(chan Line)
 	fighter := &fighter{
 		x: x, y: y, id: id, kind: kind, character: '@',
 		message: message, reply: reply,
@@ -81,23 +81,22 @@ func (fighter *fighter) Action(action string) {
 		act = "stab"
 	}
 
-	fighter.reply <- CommandData{act, []int{fighter.id, fighter.x, fighter.y}}
+	fighter.reply <- Line{act, fighter.id, fighter.x, fighter.y}
 }
 
 func (fighter *fighter) Listen() {
 	go func() {
 		for line := range fighter.message {
-			str := strings.Split(strings.TrimSpace(string(line)), ",")
-			action := str[0]
-			id, _ := strconv.Atoi(str[1])
+			action := line.Action
+			id := line.Id
+			x := line.X
+			y := line.Y
 
 			if id == fighter.id && fighter.kind == "enemy" && action == "pos" {
-				x, _ := strconv.Atoi(str[2])
-				y, _ := strconv.Atoi(str[3])
 				mySafeMap.Insert(fmt.Sprintf("%d_x", id), x)
 				mySafeMap.Insert(fmt.Sprintf("%d_y", id), y)
 				fighter.Pos(x, y)
-				fighter.reply <- CommandData{"FLUSH", []int{fighter.id, 0, 0}}
+				fighter.reply <- Line{"refresh_board", id, x, y}
 			}
 
 			if id != fighter.id {
@@ -105,21 +104,18 @@ func (fighter *fighter) Listen() {
 			}
 
 			if action == "hit" && id != fighter.id {
-				fighter.reply <- CommandData{"HIT", []int{fighter.id, fighter.x, fighter.y}}
+				fighter.reply <- Line{"hit", fighter.id, fighter.x, fighter.y}
 			}
 
 			if id != fighter.id && action == "die" {
-				fighter.reply <- CommandData{"KILL", []int{fighter.id, fighter.x, fighter.y}}
+				fighter.reply <- Line{"win", fighter.id, fighter.x, fighter.y}
 			}
 
 			if id == fighter.id && action == "die" {
-				fighter.reply <- CommandData{"WIN", []int{fighter.id, fighter.x, fighter.y}}
-
+				fighter.reply <- Line{"kill", fighter.id, fighter.x, fighter.y}
 			}
 		}
 	}()
-	//close(fighter.message)
-
 }
 
 func (fighter *fighter) Down() {
@@ -169,13 +165,13 @@ func (fighter *fighter) cellIsOccupied(x, y int) bool {
 }
 
 func (fighter *fighter) Hide() {
-	fighter.reply <- CommandData{"HIDE", []int{fighter.id, fighter.x, fighter.y}}
+	fighter.reply <- Line{"hide", fighter.id, fighter.x, fighter.y}
 }
 
 func (fighter *fighter) Draw() {
 	if fighter.kind == "enemy" {
-		fighter.reply <- CommandData{"DRAW", []int{fighter.id, fighter.x, fighter.y, 1}}
+		fighter.reply <- Line{"redraw_enemy", fighter.id, fighter.x, fighter.y}
 	} else {
-		fighter.reply <- CommandData{"DRAW", []int{fighter.id, fighter.x, fighter.y, 0}}
+		fighter.reply <- Line{"redraw_me", fighter.id, fighter.x, fighter.y}
 	}
 }

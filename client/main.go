@@ -24,25 +24,32 @@ func printMsg(x, y int, fg, bg termbox.Attribute, msg string) {
 	}
 }
 
-func readFromServer(fighterId int, fighters []fighter.Fighter, bufc *bufio.Reader, reply chan fighter.CommandData) {
+func readFromServer(fighterId int, fighters []fighter.Fighter, bufc *bufio.Reader, reply chan fighter.Line) {
 	go func() {
 		for {
-			line, _ := bufc.ReadString('\n')
-			str := strings.Split(strings.TrimSpace(string(line)), ",")
-			id, _ := strconv.Atoi(str[1])
+			line, _ := bufc.ReadString('\n') // Blocks
+			data := parseLine(string(line))
 
-			if id != fighterId && isNewEnemy(id, fighters) {
-				x, _ := strconv.Atoi(str[2])
-				y, _ := strconv.Atoi(str[3])
-				enemy := fighter.NewFighter(x, y, id, "enemy", reply)
+			if data.Id != fighterId && isNewEnemy(data.Id, fighters) {
+				enemy := fighter.NewFighter(data.X, data.Y, data.Id, "enemy", reply)
 				fighters = append(fighters, enemy)
 			}
 
 			for _, fighter := range fighters {
-				fighter.SendMessage(line)
+				fighter.SendMessage(data)
 			}
 		}
 	}()
+}
+
+func parseLine(line string) fighter.Line {
+	str := strings.Split(strings.TrimSpace(string(line)), ",")
+	action := str[0]
+	id, _ := strconv.Atoi(str[1])
+	x, _ := strconv.Atoi(str[2])
+	y, _ := strconv.Atoi(str[3])
+
+	return fighter.Line{action, id, x, y}
 }
 
 func isNewEnemy(id int, fighters []fighter.Fighter) bool {
@@ -55,21 +62,20 @@ func isNewEnemy(id int, fighters []fighter.Fighter) bool {
 	return isNew
 }
 
-func handleFighterActions(cn net.Conn, reply chan fighter.CommandData) {
+func handleFighterActions(cn net.Conn, reply chan fighter.Line) {
 	go func() {
 		for {
 			select {
 			case response, ok := <-reply:
 				if ok {
-					val := response.Value
 					action := response.Action
-					id := val[0]
-					x := val[1]
-					y := val[2]
+					id := response.Id
+					x := response.X
+					y := response.Y
 
-					if action == "FLUSH" {
+					if action == "refresh_board" {
 						termbox.Flush()
-					} else if action == "HIT" {
+					} else if action == "hit" {
 						termbox.SetCell(x, y, '@', termbox.ColorYellow, termbox.ColorBlack)
 						termbox.Flush()
 						go func() {
@@ -78,24 +84,24 @@ func handleFighterActions(cn net.Conn, reply chan fighter.CommandData) {
 							termbox.Flush()
 
 						}()
-					} else if action == "HIDE" {
+					} else if action == "hide" {
 						termbox.SetCell(x, y, ' ', termbox.ColorBlack, termbox.ColorBlack)
 						termbox.Flush()
-					} else if action == "DRAW" {
-						enemy := val[3]
-						if enemy == 1 {
-							termbox.SetCell(x, y, '@', termbox.ColorRed, termbox.ColorBlack)
-						} else {
-							termbox.SetCell(x, y, '@', termbox.ColorBlue, termbox.ColorBlack)
-						}
+					} else if action == "redraw_enemy" {
+						termbox.SetCell(x, y, '@', termbox.ColorRed, termbox.ColorBlack)
 						termbox.Flush()
-					} else if action == "KILL" {
+
+					} else if action == "redraw_me" {
+						termbox.SetCell(x, y, '@', termbox.ColorBlue, termbox.ColorBlack)
+						termbox.Flush()
+					} else if action == "kill" {
 						drawBoard("YOU DIED! - GAME OVER")
-					} else if action == "WIN" {
+					} else if action == "win" {
 						drawBoard("YOU WIN!!! - GAME OVER")
 					} else {
 						cn.Write([]byte(fmt.Sprintf("%s,%d,%d,%d\n", action, id, x, y)))
 					}
+
 				}
 
 			}
@@ -142,27 +148,8 @@ func readConnectionLine(bufc *bufio.Reader) (int, int, int) {
 		os.Exit(1)
 	}
 
-	str := strings.Split(strings.TrimSpace(string(line)), ",")
-
-	fighterId, err := strconv.Atoi(str[1])
-	if err != nil {
-		fmt.Println("Unable to get Fighter ID from server: ", err.Error())
-		os.Exit(1)
-	}
-
-	x, err := strconv.Atoi(str[2])
-	if err != nil {
-		fmt.Println("Unable to get Fighter X from server: ", err.Error())
-		os.Exit(1)
-	}
-
-	y, err := strconv.Atoi(str[3])
-	if err != nil {
-		fmt.Println("Unable to get Figher Y from server: ", err.Error())
-		os.Exit(1)
-	}
-
-	return x, y, fighterId
+	data := parseLine(string(line))
+	return data.X, data.Y, data.Id
 }
 
 func handleKeyEvents(f fighter.Fighter) {
@@ -200,7 +187,7 @@ func main() {
 
 	bufc := bufio.NewReader(cn)
 
-	reply := make(chan fighter.CommandData, 4)
+	reply := make(chan fighter.Line, 4)
 	defer close(reply)
 
 	x, y, fighterId := readConnectionLine(bufc)

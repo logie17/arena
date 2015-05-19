@@ -42,7 +42,7 @@ func (client *Client) Listen(conn net.Conn) {
 		for line := range client.Message {
 			action, id, x, y := client.parseLine(string(line))
 			if action == "stab" && client.NearEnemy() {
-				client.sendAttackMsg(conn, action, id)
+				client.sendAttackMsg(conn, action, id, x, y)
 			} else {
 				client.sendPosMsg(conn, action, id, x, y)
 			}
@@ -61,12 +61,12 @@ func (client *Client) sendPosMsg(conn net.Conn, action string, id, x, y int) {
 	client.SendMessage(conn, fmt.Sprintf("%s,%d,%d,%d\n", action, id, x, y))
 }
 
-func (client *Client) sendAttackMsg(conn net.Conn, action string, id int) {
+func (client *Client) sendAttackMsg(conn net.Conn, action string, id, x, y int) {
 	client.HPLevel--
 	if client.HPLevel == 0 {
-		client.SendMessage(conn, fmt.Sprintf("die,%d\n", id))
+		client.SendMessage(conn, fmt.Sprintf("die,%d,%d,%d\n", id, x, y))
 	} else {
-		client.SendMessage(conn, fmt.Sprintf("hit,%d\n", id))
+		client.SendMessage(conn, fmt.Sprintf("hit,%d,%d,%d\n", id, x, y))
 	}
 }
 
