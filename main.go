@@ -40,31 +40,43 @@ func NewClient(Id int) *Client {
 func (client *Client) Listen(conn net.Conn) {
 	go func() {
 		for line := range client.Message {
-			str := strings.Split(strings.TrimSpace(string(line)), ",")
-			action := str[0]
-			iid, _ := strconv.Atoi(str[1])
-			x, _ := strconv.Atoi(str[2])
-			y, _ := strconv.Atoi(str[3])
+			action, id, x, y := client.parseLine(string(line))
 			if action == "stab" && client.NearEnemy() {
-				client.HPLevel--
-				if (client.HPLevel == 0 ) {
-					client.SendMessage(conn, fmt.Sprintf("die,%d\n", iid))
-				} else {
-					client.SendMessage(conn, fmt.Sprintf("hit,%d\n", iid))
-				}
-
+				client.sendAttackMsg(conn, action, id)
 			} else {
-				if iid == client.Id {
-					client.X = x
-					client.Y = y
-				} else {
-					client.EX = x
-					client.EY = y
-				}
-				client.SendMessage(conn, fmt.Sprintf("%s,%d,%d,%d\n", action, iid, x, y))
+				client.sendPosMsg(conn, action, id, x, y)
 			}
 		}
 	}()
+}
+
+func (client *Client) sendPosMsg(conn net.Conn, action string, id, x, y int) {
+	if id == client.Id {
+		client.X = x
+		client.Y = y
+	} else {
+		client.EX = x
+		client.EY = y
+	}
+	client.SendMessage(conn, fmt.Sprintf("%s,%d,%d,%d\n", action, id, x, y))
+}
+
+func (client *Client) sendAttackMsg(conn net.Conn, action string, id int){
+	client.HPLevel--
+	if (client.HPLevel == 0 ) {
+		client.SendMessage(conn, fmt.Sprintf("die,%d\n", id))
+	} else {
+		client.SendMessage(conn, fmt.Sprintf("hit,%d\n", id))
+	}
+}
+
+func (client *Client) parseLine(line string) (string, int, int, int) {
+	str := strings.Split(strings.TrimSpace(line), ",")
+	action := str[0]
+	iid, _ := strconv.Atoi(str[1])
+	x, _ := strconv.Atoi(str[2])
+	y, _ := strconv.Atoi(str[3])
+	return action, iid, x, y
 }
 
 func (client *Client) NearEnemy() bool {

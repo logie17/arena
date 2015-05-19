@@ -59,43 +59,43 @@ func handleFighterActions(cn net.Conn, reply chan fighter.CommandData) {
 	go func() {
 		for {
 			select {
-			case response := <-reply:
-				val := response.Value
-				action := response.Action
-				id := val[0]
-				x := val[1]
-				y := val[2]
+			case response, ok := <-reply:
+				if ok {
+					val := response.Value
+					action := response.Action
+					id := val[0]
+					x := val[1]
+					y := val[2]
 
-				if action == "FLUSH" {
-					termbox.Flush()
-				} else if action == "HIT" {
-					termbox.SetCell(x, y, '@', termbox.ColorYellow, termbox.ColorBlack)
-					termbox.Flush()
-					go func() {
-						time.Sleep(100 * time.Millisecond)
-						termbox.SetCell(x, y, '@', termbox.ColorRed, termbox.ColorBlack)
+					if action == "FLUSH" {
 						termbox.Flush()
+					} else if action == "HIT" {
+						termbox.SetCell(x, y, '@', termbox.ColorYellow, termbox.ColorBlack)
+						termbox.Flush()
+						go func() {
+							time.Sleep(100 * time.Millisecond)
+							termbox.SetCell(x, y, '@', termbox.ColorRed, termbox.ColorBlack)
+							termbox.Flush()
 
-					}()
-				} else if action == "HIDE" {
-					termbox.SetCell(x, y, ' ', termbox.ColorBlack, termbox.ColorBlack)
-					termbox.Flush()
-				} else if action == "DRAW" {
-					enemy := val[3]
-					if enemy == 1 {
-						termbox.SetCell(x, y, '@', termbox.ColorRed, termbox.ColorBlack)
+						}()
+					} else if action == "HIDE" {
+						termbox.SetCell(x, y, ' ', termbox.ColorBlack, termbox.ColorBlack)
+						termbox.Flush()
+					} else if action == "DRAW" {
+						enemy := val[3]
+						if enemy == 1 {
+							termbox.SetCell(x, y, '@', termbox.ColorRed, termbox.ColorBlack)
+						} else {
+							termbox.SetCell(x, y, '@', termbox.ColorBlue, termbox.ColorBlack)
+						}
+						termbox.Flush()
+					} else if action == "KILL" {
+						drawBoard("YOU DIED! - GAME OVER")
+					} else if action == "WIN" {
+						drawBoard("YOU WIN!!! - GAME OVER")
 					} else {
-						termbox.SetCell(x, y, '@', termbox.ColorBlue, termbox.ColorBlack)
+						cn.Write([]byte(fmt.Sprintf("%s,%d,%d,%d\n", action, id, x, y)))
 					}
-					termbox.Flush()
-				} else if action == "KILL" {
-					println("YOU DIED!")
-					os.Exit(1)
-				} else if action == "WIN" {
-					println("YOU WIN!!!")
-					os.Exit(1)
-				} else {
-					cn.Write([]byte(fmt.Sprintf("%s,%d,%d,%d\n", action, id, x, y)))
 				}
 
 			}
@@ -104,11 +104,11 @@ func handleFighterActions(cn net.Conn, reply chan fighter.CommandData) {
 
 }
 
-func setupBoard() {
+func drawBoard(msg string) {
 	termbox.SetInputMode(termbox.InputEsc | termbox.InputMouse)
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 
-	printMsg(int(boardWidth/2)-(int(boardWidth/2)/2), 0, termbox.ColorRed, termbox.ColorBlack, "ARENA!!! FIGHT!!!")
+	printMsg(int(boardWidth/2)-(int(boardWidth/2)/2), 0, termbox.ColorRed, termbox.ColorBlack, msg)
 
 	for i := 1; i < 80; i++ {
 		termbox.SetCell(i, 2, 0x2500, termbox.ColorGreen, termbox.ColorBlack)
@@ -124,29 +124,21 @@ func setupBoard() {
 
 }
 
-func main() {
-	if err := termbox.Init(); err != nil {
-		panic(err)
-	}
-
-	defer termbox.Close()
-	setupBoard()
-
+func establishConnection() net.Conn {
 	destination := "127.0.0.1:9000"
+
 	cn, err := net.Dial("tcp", destination)
 	if err != nil {
+		fmt.Println("Unable to open connection: ", err.Error())
 		os.Exit(1)
 	}
+	return cn
+}
 
-	//defer cn.Close();
-
-	bufc := bufio.NewReader(cn)
-	if err != nil {
-		os.Exit(1)
-	}
-
+func readConnectionLine(bufc *bufio.Reader)(int, int, int) { 
 	line, err := bufc.ReadString('\n')
 	if err != nil {
+		fmt.Println("Unable to read connection string", err.Error())
 		os.Exit(1)
 	}
 
@@ -154,34 +146,32 @@ func main() {
 
 	fighterId, err := strconv.Atoi(str[1])
 	if err != nil {
+		fmt.Println("Unable to get Fighter ID from server: ", err.Error())
 		os.Exit(1)
 	}
+	
 	x, err := strconv.Atoi(str[2])
 	if err != nil {
+		fmt.Println("Unable to get Fighter X from server: ", err.Error())
 		os.Exit(1)
 	}
+	
 	y, err := strconv.Atoi(str[3])
 	if err != nil {
+		fmt.Println("Unable to get Figher Y from server: ", err.Error())
 		os.Exit(1)
 	}
 
-	reply := make(chan fighter.CommandData, 4)
-	player := fighter.NewFighter(x, y, fighterId, "me", reply)
-	fighters := []fighter.Fighter{player}
-
-	readFromServer(fighterId, fighters, bufc, reply)
-	handleFighterActions(cn, reply)
-	handleKeyEvents(player)
+	return x, y, fighterId
 }
 
 func handleKeyEvents(f fighter.Fighter) {
-LOOP:
 	for {
 		switch ev := termbox.PollEvent(); ev.Type {
 		case termbox.EventKey:
 			switch ev.Key {
 			case termbox.KeyEsc:
-				break LOOP
+				os.Exit(0)
 			case termbox.KeyArrowDown:
 				f.Action("Down")
 			case termbox.KeyArrowUp:
@@ -196,3 +186,29 @@ LOOP:
 		}
 	}
 }
+
+func main() {
+	if err := termbox.Init(); err != nil {
+		panic(err)
+	}
+
+	defer termbox.Close()
+
+	drawBoard("ARENA!! FIGHT TO THE DEATH!!")
+	cn := establishConnection()
+	defer cn.Close()
+
+	bufc := bufio.NewReader(cn)
+
+	reply := make(chan fighter.CommandData, 4)
+	defer close(reply)
+
+	x, y, fighterId := readConnectionLine(bufc)
+	player := fighter.NewFighter(x, y, fighterId, "me", reply)
+	fighters := []fighter.Fighter{player}
+
+	readFromServer(fighterId, fighters, bufc, reply)
+	handleFighterActions(cn, reply)
+	handleKeyEvents(player)
+}
+

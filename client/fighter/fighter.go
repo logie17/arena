@@ -118,8 +118,8 @@ func (fighter *fighter) Listen() {
 
 			}
 		}
-		close(fighter.message)
 	}()
+	//close(fighter.message)
 
 }
 
