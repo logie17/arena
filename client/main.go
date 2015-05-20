@@ -76,11 +76,11 @@ func handleFighterActions(cn net.Conn, reply chan fighter.Line) {
 					if action == "refresh_board" {
 						termbox.Flush()
 					} else if action == "hit" {
-						termbox.SetCell(x, y, '@', termbox.ColorYellow, termbox.ColorBlack)
+						termbox.SetCell(x, y, '♥', termbox.ColorYellow, termbox.ColorBlack)
 						termbox.Flush()
 						go func() {
 							time.Sleep(100 * time.Millisecond)
-							termbox.SetCell(x, y, '@', termbox.ColorRed, termbox.ColorBlack)
+							termbox.SetCell(x, y, '♥', termbox.ColorRed, termbox.ColorBlack)
 							termbox.Flush()
 
 						}()
@@ -88,11 +88,11 @@ func handleFighterActions(cn net.Conn, reply chan fighter.Line) {
 						termbox.SetCell(x, y, ' ', termbox.ColorBlack, termbox.ColorBlack)
 						termbox.Flush()
 					} else if action == "redraw_enemy" {
-						termbox.SetCell(x, y, '@', termbox.ColorRed, termbox.ColorBlack)
+						termbox.SetCell(x, y, '♥', termbox.ColorRed, termbox.ColorBlack)
 						termbox.Flush()
 
 					} else if action == "redraw_me" {
-						termbox.SetCell(x, y, '@', termbox.ColorBlue, termbox.ColorBlack)
+						termbox.SetCell(x, y, '♥', termbox.ColorBlue, termbox.ColorBlack)
 						termbox.Flush()
 					} else if action == "kill" {
 						drawBoard("YOU DIED! - GAME OVER")

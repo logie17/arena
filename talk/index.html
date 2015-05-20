@@ -41,6 +41,7 @@
 	<section>
 	  <h1>Perl 2 Go</h1>
 	  <h3>A Survey</h3>
+          <img data-src="../Golang.png">
 	  <p>
 	    <small><a
                       href="http://www.loganbell.org">Logan Bell</a> / <a href="http://twitter.com/epochbell">@epochbell</a></small>
@@ -50,9 +51,8 @@
         <section>
 	  <h2>Why Go?</h2>
 	  <ul>
-            <li>We use Go <a href="http://www.mediamath.com">MediaMath</a></li>
-            <li>Thrill</li>
-            <li>Edifying</li>
+            <li>We use Go at <a href="http://www.mediamath.com">MediaMath</a>(& Perl)</li>
+            <li>Learn new constructs</li>
 	  </ul>
         </section>
 
@@ -69,7 +69,6 @@
           <ul>
             <li>Build A Game!</li>
             <li>Best way to learn</li>
-            <li>Oh I also use it for work too</li>
             <li>Oh, I'm also not an expert, so be nice :)</li>
           </ul>
         </section>
@@ -102,6 +101,7 @@
           <ul>
             <li>Left, right down, up arrows</li>
             <li>First one to 5 wins</li>
+            <li>Spacebar for hitting</li> 
             <li>Only 2 clients</li>
           </ul>
         </section>
@@ -118,6 +118,36 @@
           </ul>
         </section>
 
+        <section>
+          <h2>Directory Structure of Game</h2>
+          <img data-src="../structure.png">
+        </section>
+
+        <section>
+          <section>
+            <h2>First Sidetrack: Hello</h2>
+            <pre class="fragment current-visible"><code data-trim contenteditable>
+package main
+import "fmt"
+               
+func main() {
+   fmt.Println("Hello world!")
+}
+            </code></pre>
+          </section>
+          <section>
+            <h2>Compile Hello World</h2>
+            <pre class="fragment current-visible"><code data-trim contenteditable>
+                go build
+            </code></pre>
+            <pre class="fragment current-visible"><code data-trim contenteditable>
+                ./helloworld
+            </code></pre>
+
+          </section>
+
+        </section>
+        
         <section>
           <section>
             <h2>Fighter</h2>
@@ -150,6 +180,63 @@ type fighter struct {
 	    </code></pre>
           </section>
           <section>
+            <h2>Go Routine Side Track</h2>
+	    <pre class="fragment current-visible"><code data-trim contenteditable>
+package main
+
+import "fmt"
+
+func main() {
+	go routine()
+	go routine()
+	go routine()
+}
+
+func routine () {
+	fmt.Println("Hello world!")
+}
+
+
+	    </code></pre>
+            
+          </section>
+          <section>
+            <h2>What it looks like</h2>
+
+            <img data-src="../routine1.png">
+            
+          </section>
+                    <section>
+            <h2>Lets use Channels</h2>
+	    <pre class="fragment current-visible"><code data-trim contenteditable>
+package main
+import "fmt"
+func main() {
+	done := make(chan string)
+	go routine(done)
+	go routine(done)
+	go routine(done)
+	<-done
+	<-done
+	<-done
+	close(done)
+}
+
+func routine (done chan string) {
+	fmt.Println("Hello world!")
+	done<-"done"
+}
+	    </code></pre>
+            
+          </section>
+          <section>
+            <h2>What it looks like</h2>
+
+            <img data-src="../routine2.png">
+            
+          </section>
+
+          <section>
 	    <h2>Types</h2>
             <ul>
               <li>int</li>
@@ -159,21 +246,6 @@ type fighter struct {
             </ul>
           </section>
           <section>
-	    <h2>Type Keyword</h2>
-	    <pre class="fragment current-visible"><code data-trim contenteditable>
-type Count int
-func main() {
-	var c Count = 1
-	fmt.Println(c.Increment()
-}
-
-func(count *Count) Increment() Count {
-	*count++
-	return *count
-}
-            </code></pre>
-          </section>
-          <section>
             <h2>Objects and Methods</h2>
 	    <pre class="fragment current-visible"><code data-trim contenteditable>
 func NewFighter(x, y, id int, kind string, reply chan Line) Fighter {
@@ -181,7 +253,8 @@ func NewFighter(x, y, id int, kind string, reply chan Line) Fighter {
 	mySafeMap.Insert(fmt.Sprintf("%d_y", id), y)
 	message := make(chan Line)
 	fighter := &fighter{
-		x: x, y: y, id: id, kind: kind, character: '@',
+                x: x, y: y, id: id, kind: kind, character: '♥',
+                // code point 2665
 		message: message, reply: reply,
 	}
 	fighter.Listen()
@@ -248,6 +321,21 @@ ok  github.com/logie17/arena/client/fighter0.006s
           </section>
 
         </section>
+        <section>
+	  <h2>Type Keyword Sidetrack</h2>
+	  <pre class="fragment current-visible"><code data-trim contenteditable>
+type Count int
+func main() {
+	var c Count = 1
+	fmt.Println(c.Increment()
+}
+
+func(count *Count) Increment() Count {
+	*count++
+	return *count
+}
+          </code></pre>
+        </section>
 
         <section>
           <section>
@@ -262,12 +350,14 @@ ok  github.com/logie17/arena/client/fighter0.006s
           </section>
           <section>
             <h2>Concurrency</h2>
-            <p>Go Routines</p>
-            <p>Channels</p>
-            <p>Deeply rooted in Communicating
-              Sequential Processes (CSP)</p>
-            <p>Long history in other similar
-              languages</p>
+            <ul>
+              <li>Go Routines</li>
+              <li>Channels</li>
+              <li>Deeply rooted in Communicating
+                Sequential Processes (CSP)</li>
+              <li>Long history in other similar
+                languages</li>
+            </ul>
           </section>
           <section>
             <h2>Let's dive in</h2>
@@ -379,13 +469,14 @@ func (client *Client) sendPosMsg(conn net.Conn, action string, id, x, y int) {
 
         <section>
           <section>
-	    <h2>Server Side Code</h2>
+	    <h2>Client Side Code</h2>
 	    <pre class="fragment current-visible"><code data-trim contenteditable>
 func main() {
         ...
-        cn := establishConnection()
+        cn := establishConnection() // Returns a Conn
 	defer cn.Close()
-	bufc := bufio.NewReader(cn)
+        // Has a Read method that io.Reader expects
+        bufc := bufio.NewReader(cn) // Accepts a io.Reader
 
 	reply := make(chan fighter.Line, 4)
 	defer close(reply)
@@ -397,6 +488,21 @@ func main() {
 	handleKeyEvents(player)
 }
 
+	    </code></pre>
+          </section>
+          <section>
+	    <h2>establishConnection</h2>
+	    <pre class="fragment current-visible"><code data-trim contenteditable>
+func establishConnection() net.Conn {
+	destination := "127.0.0.1:9000"
+
+	cn, err := net.Dial("tcp", destination)
+	if err != nil {
+		fmt.Println("Unable to open connection: ", err.Error())
+		os.Exit(1)
+	}
+	return cn
+}
 	    </code></pre>
           </section>
 
@@ -423,6 +529,25 @@ func readFromServer(fighterId int, fighters []fighter.Fighter,
 }
 	    </code></pre>
           </section>
+          	    <h2>Handle Events From Server</h2>
+	    <pre class="fragment current-visible"><code data-trim contenteditable>
+func handleFighterActions(cn net.Conn, reply chan fighter.Line) {
+	go func() {
+		for {
+			select {
+			case response, ok := <-reply:
+				if ok {
+					action := response.Action
+					id := response.Id
+					x := response.X
+					y := response.Y
+
+					if action == "refresh_board" {
+						termbox.Flush()
+                                                ...
+	    </code></pre>
+          </section>
+
            <section>
             <h2>Handle Key Events</h2>
 	    <pre class="fragment current-visible"><code data-trim contenteditable>
@@ -445,7 +570,7 @@ func handleKeyEvents(f fighter.Fighter) {
 
         <section>
           <section>
-            <h2>Let's talk more about concurency</h2>
+            <h2>Let's talk more about concurrency</h2>
             <p>Go supplies a great sync library</p>
           </section>
           <section>
@@ -488,16 +613,24 @@ func (sf *safeMap) Find(key string) int {
 
         </section>
         <section>
+          <h2>LIVE DEMO TIME!</h2>
+        </section>
+        <section>
           <h2>In Summary</h2>
-          <p>...</p>
+          <ul>
+            <li>Do not program like me</li>
+            <li>Go is simple but powerful</li>
+            <li>There is more to learn!</li>
+          </ul>
         </section>
         <section>
           <h2>Thank you!</h2>
           <p>The people I love</p>
           <p>MediaMath for giving me this opportunity</p>
         </section>
-
-
+        <section>
+          <h2>Question time!</h2>
+        </section>
       </div>
       <div id="media-math-logo" style="background-size:
                                        100px 64px;background-repeat:

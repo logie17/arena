@@ -51,7 +51,7 @@ func NewFighter(x, y, id int, kind string, reply chan Line) Fighter {
 	mySafeMap.Insert(fmt.Sprintf("%d_y", id), y)
 	message := make(chan Line)
 	fighter := &fighter{
-		x: x, y: y, id: id, kind: kind, character: '@',
+		x: x, y: y, id: id, kind: kind, character: '♥', //code point 2665
 		message: message, reply: reply,
 	}
 	fighter.Listen()
