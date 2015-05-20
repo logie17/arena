@@ -41,11 +41,13 @@
 	<section>
 	  <h1>Perl 2 Go</h1>
 	  <h3>A Survey</h3>
-          <img data-src="../Golang.png">
+          <img data-src="../Golang.png" style="height: 200px">
 	  <p>
-	    <small><a
-                      href="http://www.loganbell.org">Logan Bell</a> / <a href="http://twitter.com/epochbell">@epochbell</a></small>
+	    <small><a href="http://www.loganbell.org">Logan Bell</a> / <a href="http://twitter.com/epochbell">@epochbell</a></small>
 	  </p>
+          <p>
+            <small><a href="https://metacpan.org/author/LOGIE">LOGIE</a> on CPAN / <a href="mailto:lbell@mediamath.com">lbell@mediamath.com</a></small>
+          </p>
 	</section>
 
         <section>
@@ -455,7 +457,8 @@ func (s *Server) Broadcast(line string) {
           <section>
             <h2>Message Handling: Iterate Messages</h2>
 	    <pre class="fragment current-visible"><code data-trim contenteditable>
-go func() {
+func (client *Client) Listen(conn net.Conn) {
+   go func() {
 	for line := range client.Message {
 		action, id, x, y := client.parseLine(string(line))
 		if action == "stab" && client.NearEnemy() {
@@ -464,7 +467,8 @@ go func() {
 			client.sendPosMsg(conn, action, id, x, y)
 		}
 	}
-}()
+   }()
+}
 	    </code></pre>
 
           </section>
@@ -550,7 +554,8 @@ func readFromServer(fighterId int, fighters []fighter.Fighter,
 }
 	    </code></pre>
           </section>
-          	    <h2>Handle Events From Server</h2>
+          <section>
+            <h2>Handle Events From Server</h2>
 	    <pre class="fragment current-visible"><code data-trim contenteditable>
 func handleFighterActions(cn net.Conn, reply chan fighter.Line) {
 	go func() {
@@ -651,6 +656,7 @@ func (sf *safeMap) Find(key string) int {
         </section>
         <section>
           <h2>Question time!</h2>
+          <p><a href="http://github.com/logie17/arena">Arena Source Code</a></p>
         </section>
       </div>
       <div id="media-math-logo" style="background-size:
