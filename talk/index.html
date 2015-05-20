@@ -74,26 +74,25 @@
         </section>
 
         <section>
-          <h2>What I hope One will get from this talk</h2>
+          <h2>What YOU will get from this talk</h2>
           <ol>
-            <li>Go over Arena</li>
-            <li>Touch on various Go semantics</li>
-            <li>Go over other areas of interest</li>
+            <li>A free tour of Arena</li>
+            <li>A tour of Go</li>
             <li>Try to answer some questions if I can</li>
           </ol>
         </section>
 
         <section>
 	  <h2>Arena!</h2>
-          <p>Server client model</p>
-          <p>HP of just 5</p>
-          <p>Simple, demonstrates most of the
-            constructs of Go</p>
+          <img data-src="../arena.png" style="height:570px">
         </section>
 
         <section>
 	  <h2>Arena!</h2>
-          <img data-src="../arena.png">
+          <ul>
+            <li>Server/Client Model</li>
+            <li>Simple, demonstrates most of the
+            constructs of Go</li>
         </section>
 
         <section>
@@ -107,20 +106,20 @@
         </section>
 
         <section>
-          <h2>What it'll demonstrate</h2>
+          <h2>What Arena Will Demonstrate</h2>
           <ul>
-            <li>Concurrency patterns</li>
-            <li>Structs and interfaces</li>
+            <li>Concurrency Patterns</li>
+            <li>Structs and Interfaces</li>
             <li>Types</li>
-            <li>Control structures</li>
-            <li>Unit testing</li>
-            <li>and more</li>
+            <li>Control Structures</li>
+            <li>Unit Testing</li>
+            <li>And much much more!</li>
           </ul>
         </section>
 
         <section>
           <h2>Directory Structure of Game</h2>
-          <img data-src="../structure.png">
+          <img data-src="../structure.png" style="height:470px">
         </section>
 
         <section>
@@ -180,7 +179,22 @@ type fighter struct {
 	    </code></pre>
           </section>
           <section>
-            <h2>Go Routine Side Track</h2>
+	    <h2>All The Other Types</h2>
+            <ul>
+              <li>Boolean</li>
+              <li>More Numeric Types</li>
+              <li>Array</li>
+              <li>Slices</li>
+              <li>Pointers</li>
+              <li>Functions</li>
+              <li>Interfaces</li>
+              <li>Maps</li>
+            </ul>
+          </section>
+
+          </section>
+          <section>
+            <h2>Second Sidetrack: Go Routines</h2>
 	    <pre class="fragment current-visible"><code data-trim contenteditable>
 package main
 
@@ -237,16 +251,7 @@ func routine (done chan string) {
           </section>
 
           <section>
-	    <h2>Types</h2>
-            <ul>
-              <li>int</li>
-              <li>string</li>
-              <li>rune</li>
-              <li>struct</li>
-            </ul>
-          </section>
-          <section>
-            <h2>Objects and Methods</h2>
+            <h2>Initialize a Fighter</h2>
 	    <pre class="fragment current-visible"><code data-trim contenteditable>
 func NewFighter(x, y, id int, kind string, reply chan Line) Fighter {
 	mySafeMap.Insert(fmt.Sprintf("%d_x", id), x)
@@ -294,6 +299,22 @@ type Fighter interface {
 	    </code></pre>
           </section>
           <section>
+            <h2>Third Sidetrack: Unit Testing</h2>
+	    <pre class="fragment current-visible"><code data-trim contenteditable>
+package math
+
+import "testing"
+
+func TestAddition(t *testing.T) {
+   x := 5
+   v = x + 3
+   if v != 8 {
+       t.Error("Expected 1.5, got ", v)
+   }
+}
+            </code></pre>
+          </section>
+          <section>
             <h2>Unit Testing</h2>
 	    <pre class="fragment current-visible"><code data-trim contenteditable>
 package fighter
@@ -322,7 +343,7 @@ ok  github.com/logie17/arena/client/fighter0.006s
 
         </section>
         <section>
-	  <h2>Type Keyword Sidetrack</h2>
+	  <h2>Fourth Sidetrack: Type Keyword</h2>
 	  <pre class="fragment current-visible"><code data-trim contenteditable>
 type Count int
 func main() {
@@ -339,7 +360,7 @@ func(count *Count) Increment() Count {
 
         <section>
           <section>
-            <h2>Server</h2>
+            <h2>Server Code</h2>
             <ul>
               <li>Need to accept multiple
                 connection</li>
@@ -360,7 +381,7 @@ func(count *Count) Increment() Count {
             </ul>
           </section>
           <section>
-            <h2>Let's dive in</h2>
+            <h2>Let's dive in - main.go</h2>
 	    <pre class="fragment current-visible"><code data-trim contenteditable>
 func main() {
 	s := NewServer()
@@ -432,7 +453,7 @@ func (s *Server) Broadcast(line string) {
 	                          </code></pre>
           </section>
           <section>
-            <h2>Message Handling</h2>
+            <h2>Message Handling: Iterate Messages</h2>
 	    <pre class="fragment current-visible"><code data-trim contenteditable>
 go func() {
 	for line := range client.Message {
@@ -448,7 +469,7 @@ go func() {
 
           </section>
           <section>
-            <h2>Message Handling</h2>
+            <h2>Message Handling: Send it Back</h2>
 	    <pre class="fragment current-visible"><code data-trim contenteditable>
 func (client *Client) sendPosMsg(conn net.Conn, action string, id, x, y int) {
 	if id == client.Id {
@@ -507,7 +528,7 @@ func establishConnection() net.Conn {
           </section>
 
           <section>
-	    <h2>Listen to Server</h2>
+	    <h2>Listen to Server Replies</h2>
 	    <pre class="fragment current-visible"><code data-trim contenteditable>
 func readFromServer(fighterId int, fighters []fighter.Fighter,
       bufc *bufio.Reader, reply chan fighter.Line) {
@@ -570,7 +591,7 @@ func handleKeyEvents(f fighter.Fighter) {
 
         <section>
           <section>
-            <h2>Let's talk more about concurrency</h2>
+            <h2>Concurrency with Sync</h2>
             <p>Go supplies a great sync library</p>
           </section>
           <section>

@@ -92,7 +92,7 @@ func handleFighterActions(cn net.Conn, reply chan fighter.Line) {
 						termbox.Flush()
 
 					} else if action == "redraw_me" {
-						termbox.SetCell(x, y, '♥', termbox.ColorBlue, termbox.ColorBlack)
+						termbox.SetCell(x, y, '♥', termbox.ColorCyan, termbox.ColorBlack)
 						termbox.Flush()
 					} else if action == "kill" {
 						drawBoard("YOU DIED! - GAME OVER")
