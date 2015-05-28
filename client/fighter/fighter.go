@@ -2,7 +2,10 @@ package fighter
 
 import (
 	"fmt"
+	"github.com/logie17/arena/client/board"
 	"github.com/logie17/arena/safehash"
+	"github.com/nsf/termbox-go"
+	"time"
 )
 
 type Line struct {
@@ -22,7 +25,6 @@ type fighter struct {
 	kind      string
 	character rune
 	message   chan Line
-	reply     chan Line
 }
 
 type Fighter interface {
@@ -34,6 +36,8 @@ type Fighter interface {
 	Action(string)
 	Listen()
 	SendMessage(Line)
+	X() int
+	Y() int
 }
 
 var mySafeMap = safehash.NewSafeMap()
@@ -46,13 +50,21 @@ func (fighter *fighter) Id() int {
 	return fighter.id
 }
 
-func NewFighter(x, y, id int, kind string, reply chan Line) Fighter {
+func (f *fighter) X() int {
+	return f.x
+}
+
+func (f *fighter) Y() int {
+	return f.y
+}
+
+func NewFighter(x, y, id int, kind string) Fighter {
 	mySafeMap.Insert(fmt.Sprintf("%d_x", id), x)
 	mySafeMap.Insert(fmt.Sprintf("%d_y", id), y)
 	message := make(chan Line)
 	fighter := &fighter{
 		x: x, y: y, id: id, kind: kind, character: '♥', //code point 2665
-		message: message, reply: reply,
+		message: message,
 	}
 	fighter.Listen()
 	fighter.Draw()
@@ -67,7 +79,6 @@ func (fighter *fighter) Pos(x, y int) {
 }
 
 func (fighter *fighter) Action(action string) {
-	act := "pos"
 	switch action {
 	case "Down":
 		fighter.Down()
@@ -77,11 +88,8 @@ func (fighter *fighter) Action(action string) {
 		fighter.Left()
 	case "Right":
 		fighter.Right()
-	case "Stab":
-		act = "stab"
 	}
 
-	fighter.reply <- Line{act, fighter.id, fighter.x, fighter.y}
 }
 
 func (fighter *fighter) Listen() {
@@ -96,7 +104,6 @@ func (fighter *fighter) Listen() {
 				mySafeMap.Insert(fmt.Sprintf("%d_x", id), x)
 				mySafeMap.Insert(fmt.Sprintf("%d_y", id), y)
 				fighter.Pos(x, y)
-				fighter.reply <- Line{"refresh_board", id, x, y}
 			}
 
 			if id != fighter.id {
@@ -104,15 +111,21 @@ func (fighter *fighter) Listen() {
 			}
 
 			if action == "hit" && id != fighter.id {
-				fighter.reply <- Line{"hit", fighter.id, fighter.x, fighter.y}
+				board.UpdateCell(x, y, '♥', termbox.ColorYellow)
+				go func() {
+					time.Sleep(100 * time.Millisecond)
+					board.UpdateCell(x, y, '♥', termbox.ColorRed)
+
+				}()
+
 			}
 
 			if id != fighter.id && action == "die" {
-				fighter.reply <- Line{"win", fighter.id, fighter.x, fighter.y}
+				board.DrawBoard("YOU WIN - GAME OVER!")
 			}
 
 			if id == fighter.id && action == "die" {
-				fighter.reply <- Line{"kill", fighter.id, fighter.x, fighter.y}
+				board.DrawBoard("YOU DIED!! - GAME OVER!")
 			}
 		}
 	}()
@@ -165,13 +178,15 @@ func (fighter *fighter) cellIsOccupied(x, y int) bool {
 }
 
 func (fighter *fighter) Hide() {
-	fighter.reply <- Line{"hide", fighter.id, fighter.x, fighter.y}
+	termbox.SetCell(fighter.x, fighter.y, ' ', termbox.ColorBlack, termbox.ColorBlack)
+	termbox.Flush()
+
 }
 
-func (fighter *fighter) Draw() {
-	if fighter.kind == "enemy" {
-		fighter.reply <- Line{"redraw_enemy", fighter.id, fighter.x, fighter.y}
+func (f *fighter) Draw() {
+	if f.kind == "enemy" {
+		board.UpdateCell(f.x, f.y, '♥', termbox.ColorRed)
 	} else {
-		fighter.reply <- Line{"redraw_me", fighter.id, fighter.x, fighter.y}
+		board.UpdateCell(f.x, f.y, '♥', termbox.ColorCyan)
 	}
 }
