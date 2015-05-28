@@ -33,7 +33,7 @@ type Fighter interface {
 	Up()
 	Down()
 	Id() int
-	Action(string)
+	Action(termbox.Key) []byte
 	Listen()
 	SendMessage(Line)
 	X() int
@@ -78,18 +78,21 @@ func (fighter *fighter) Pos(x, y int) {
 	fighter.Draw()
 }
 
-func (fighter *fighter) Action(action string) {
-	switch action {
-	case "Down":
-		fighter.Down()
-	case "Up":
-		fighter.Up()
-	case "Left":
-		fighter.Left()
-	case "Right":
-		fighter.Right()
+func (f *fighter) Action(key termbox.Key) []byte {
+	act := "pos"
+	switch key {
+	case termbox.KeyArrowDown:
+		f.Down()
+	case termbox.KeyArrowLeft:
+		f.Left()
+	case termbox.KeyArrowRight:
+		f.Right()
+	case termbox.KeyArrowUp:
+		f.Up()
+	case termbox.KeySpace:
+		act = "stab"
 	}
-
+	return []byte(fmt.Sprintf("%s,%d,%d,%d\n", act, f.id, f.x, f.y))
 }
 
 func (fighter *fighter) Listen() {

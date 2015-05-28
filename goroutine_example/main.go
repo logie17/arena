@@ -13,9 +13,7 @@ func main() {
 	close(done)
 }
 
-func routine (done chan string) {
+func routine(done chan string) {
 	fmt.Println("Hello world!")
-	done<-"done"
+	done <- "done"
 }
-
-
