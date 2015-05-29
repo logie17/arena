@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"math"
 	"math/rand"
 	"net"
@@ -23,7 +22,6 @@ type Client struct {
 }
 
 type Server struct {
-	Logger         *log.Logger
 	Clients        []*Client
 	serverListener net.Listener
 }
@@ -97,16 +95,10 @@ func NewServer() *Server {
 
 }
 
-func (s *Server) Log(v interface{}) {
-	if s.Logger != nil && v != nil {
-		s.Logger.Println(v)
-	}
-}
-
 func (s *Server) Serve() (err error) {
 	s.serverListener, err = net.Listen("tcp", fmt.Sprint("127.0.0.1:", 9000))
 	if err != nil {
-		s.Log(err)
+		fmt.Println(err)
 		return err
 	}
 
@@ -116,7 +108,7 @@ func (s *Server) Serve() (err error) {
 		//This blocks
 		conn, err := s.serverListener.Accept()
 		if err != nil {
-			s.Log(err)
+			fmt.Println(err)
 			break
 		}
 		client := NewClient(connId)
@@ -130,7 +122,7 @@ func (s *Server) Serve() (err error) {
 }
 
 func (s *Server) handleConn(conn net.Conn, client *Client) {
-	s.Log("trying to handle connection")
+	fmt.Println("trying to handle connection")
 	bufc := bufio.NewReader(conn)
 	s.Broadcast(fmt.Sprintf("pos,%d,%d,%d\n", client.Id, client.X, client.Y))
 	for {
@@ -143,7 +135,7 @@ func (s *Server) handleConn(conn net.Conn, client *Client) {
 }
 
 func (s *Server) Broadcast(line string) {
-	s.Log(line)
+	fmt.Println(line)
 	for _, client := range s.Clients {
 		client.Message <- string(line)
 	}
@@ -153,6 +145,6 @@ func main() {
 	s := NewServer()
 	err := s.Serve()
 	if err != nil {
-		s.Log(err)
+		fmt.Println(err)
 	}
 }
