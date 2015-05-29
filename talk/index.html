@@ -54,7 +54,7 @@
 	  <h2>Why Go?</h2>
 	  <ul>
             <li>We use Go at <a href="http://www.mediamath.com">MediaMath</a>(& Perl)</li>
-            <li>Learn new constructs</li>
+            <li>Learning is fun!</li>
 	  </ul>
         </section>
 
@@ -157,7 +157,10 @@ package fighter
 
 import (
 	"fmt"
+	"github.com/logie17/arena/client/board"
 	"github.com/logie17/arena/safehash"
+	"github.com/nsf/termbox-go"
+	"time"
 )
 
 	    </code></pre>
@@ -176,7 +179,6 @@ type fighter struct {
 	kind      string
 	character rune
 	message   chan Line
-	reply     chan Line
 }
 	    </code></pre>
           </section>
@@ -255,14 +257,13 @@ func routine (done chan string) {
           <section>
             <h2>Initialize a Fighter</h2>
 	    <pre class="fragment current-visible"><code data-trim contenteditable>
-func NewFighter(x, y, id int, kind string, reply chan Line) Fighter {
+func NewFighter(x, y, id int, kind string) Fighter {
 	mySafeMap.Insert(fmt.Sprintf("%d_x", id), x)
 	mySafeMap.Insert(fmt.Sprintf("%d_y", id), y)
 	message := make(chan Line)
 	fighter := &fighter{
-                x: x, y: y, id: id, kind: kind, character: '♥',
-                // code point 2665
-		message: message, reply: reply,
+		x: x, y: y, id: id, kind: kind,character: '♥', //code point 2665
+		message: message,
 	}
 	fighter.Listen()
 	fighter.Draw()
@@ -293,11 +294,12 @@ type Fighter interface {
 	Up()
 	Down()
 	Id() int
-	Action(string)
+	Action(termbox.Key) []byte
 	Listen()
-	SendMessage(string)
+	SendMessage(Line)
+	X() int
+	Y() int
 }
-
 	    </code></pre>
           </section>
           <section>
@@ -311,7 +313,7 @@ func TestAddition(t *testing.T) {
    x := 5
    v = x + 3
    if v != 8 {
-       t.Error("Expected 1.5, got ", v)
+       t.Error("Expected 8, got ", v)
    }
 }
             </code></pre>
@@ -322,25 +324,20 @@ func TestAddition(t *testing.T) {
 package fighter
 import "testing"
 func TestMoveLeft(t *testing.T) {
-	enemyReply := make(chan CommandData, 1)
-	NewFighter(4,4,1,"enemy", enemyReply)
-	reply := make(chan CommandData)
-	go func() {
-		subject := NewFighter(4,5,2,"me",reply)
-		subject.Left()
-	}()
-        if response:=<-reply; response.Action != "draw_me" {
-		t.Errorf("A draw action should come back in the reply")
+	NewFighter(4, 4, 1, "enemy")
+
+	subject := NewFighter(4, 5, 2, "me")
+	subject.Left()
+
+	if subject.X() == 4 && subject.Y() == 5 {
+		t.Errorf("The subject should not be able to move into an ememy zone")
 	}
 }
-			      </code></pre>
+
+	    </code></pre>
           </section>
           <section>
-            <h2>Run the test</h2>
-	    <pre class="fragment current-visible"><code data-trim contenteditable>
-$ go test ./...
-ok  github.com/logie17/arena/client/fighter0.006s
-			      </code></pre>
+            <h2>Demo Time!</h2>
           </section>
 
         </section>
@@ -350,14 +347,18 @@ ok  github.com/logie17/arena/client/fighter0.006s
 type Count int
 func main() {
 	var c Count = 1
-	fmt.Println(c.Increment()
+	fmt.Println(c.Increment())
 }
 
 func(count *Count) Increment() Count {
+        o := *count
 	*count++
-	return *count
+	return o
 }
           </code></pre>
+          <section>
+            <h2>Demo Time!</h2>
+          </section>
         </section>
 
         <section>
@@ -400,7 +401,7 @@ func main() {
 func (s *Server) Serve() (err error) {
 	s.serverListener, err = net.Listen("tcp", fmt.Sprint("127.0.0.1:", 9000))
 	if err != nil {
-		s.Log(err)
+		fmt.Println(err)
 		return err
 	}
 
@@ -410,7 +411,7 @@ func (s *Server) Serve() (err error) {
 		//This blocks
 		conn, err := s.serverListener.Accept()
 		if err != nil {
-			s.Log(err)
+			fmt.Println(err)
 			break
 		}
 		client := NewClient(connId)
@@ -428,7 +429,7 @@ func (s *Server) Serve() (err error) {
             <h2>We have a connection now what?</h2>
 	    <pre class="fragment current-visible"><code data-trim contenteditable>
 func (s *Server) handleConn(conn net.Conn, client *Client) {
-	s.Log("trying to handle connection")
+	fmt.Println("trying to handle connection")
 	bufc := bufio.NewReader(conn)
 	s.Broadcast(fmt.Sprintf("pos,%d,%d,%d\n", client.Id, client.X, client.Y))
 	for {
@@ -446,7 +447,7 @@ func (s *Server) handleConn(conn net.Conn, client *Client) {
             <h2>Using Channels to Broadcast</h2>
 	    <pre class="fragment current-visible"><code data-trim contenteditable>
 func (s *Server) Broadcast(line string) {
-	s.Log(line)
+	fmt.Println(line)
 	for _, client := range s.Clients {
 		client.Message <- string(line)
 	}
@@ -489,6 +490,9 @@ func (client *Client) sendPosMsg(conn net.Conn, action string, id, x, y int) {
 	      </code></pre>
 
           </section>
+          <section>
+            <h2>Demo Time!</h2>
+          </section>
 
         </section>
 
@@ -497,22 +501,20 @@ func (client *Client) sendPosMsg(conn net.Conn, action string, id, x, y int) {
 	    <h2>Client Side Code</h2>
 	    <pre class="fragment current-visible"><code data-trim contenteditable>
 func main() {
-        ...
-        cn := establishConnection() // Returns a Conn
+	board.InitBoard()
+	defer board.Close()
+	cn := establishConnection()
 	defer cn.Close()
-        // Has a Read method that io.Reader expects
-        bufc := bufio.NewReader(cn) // Accepts a io.Reader
 
-	reply := make(chan fighter.Line, 4)
-	defer close(reply)
+	bufc := bufio.NewReader(cn)
+
 	x, y, fighterId := readConnectionLine(bufc)
-	player := fighter.NewFighter(x, y, fighterId, "me", reply)
+	player := fighter.NewFighter(x, y, fighterId, "me")
 	fighters := []fighter.Fighter{player}
-	readFromServer(fighterId, fighters, bufc, reply)
-	handleFighterActions(cn, reply)
-	handleKeyEvents(player)
-}
 
+	readFromServer(fighterId, fighters, bufc)
+	board.HandleKeyEvents(cn, player)
+}
 	    </code></pre>
           </section>
           <section>
@@ -528,24 +530,24 @@ func establishConnection() net.Conn {
 	}
 	return cn
 }
+
 	    </code></pre>
           </section>
 
           <section>
 	    <h2>Listen to Server Replies</h2>
 	    <pre class="fragment current-visible"><code data-trim contenteditable>
-func readFromServer(fighterId int, fighters []fighter.Fighter,
-      bufc *bufio.Reader, reply chan fighter.Line) {
+func readFromServer(fighterId int, fighters []fighter.Fighter, bufc *bufio.Reader) {
 	go func() {
 		for {
 			line, _ := bufc.ReadString('\n') // Blocks
 			data := parseLine(string(line))
-                        if data.Id != fighterId
-                           && isNewEnemy(data.Id, fighters) {
-                               enemy := fighter.NewFighter(data.X,
-                                        data.Y, data.Id, "enemy", reply)
+
+			if data.Id != fighterId && isNewEnemy(data.Id, fighters) {
+				enemy := fighter.NewFighter(data.X, data.Y, data.Id, "enemy")
 				fighters = append(fighters, enemy)
 			}
+
 			for _, fighter := range fighters {
 				fighter.SendMessage(data)
 			}
@@ -554,44 +556,32 @@ func readFromServer(fighterId int, fighters []fighter.Fighter,
 }
 	    </code></pre>
           </section>
-          <section>
-            <h2>Handle Events From Server</h2>
-	    <pre class="fragment current-visible"><code data-trim contenteditable>
-func handleFighterActions(cn net.Conn, reply chan fighter.Line) {
-	go func() {
-		for {
-			select {
-			case response, ok := <-reply:
-				if ok {
-					action := response.Action
-					id := response.Id
-					x := response.X
-					y := response.Y
-
-					if action == "refresh_board" {
-						termbox.Flush()
-                                                ...
-	    </code></pre>
-          </section>
-
            <section>
             <h2>Handle Key Events</h2>
 	    <pre class="fragment current-visible"><code data-trim contenteditable>
-func handleKeyEvents(f fighter.Fighter) {
+
+type Fighter interface {
+	Action(termbox.Key) []byte
+}
+
+func HandleKeyEvents(cn net.Conn, f Fighter) {
 	for {
 		switch ev := termbox.PollEvent(); ev.Type {
 		case termbox.EventKey:
 			switch ev.Key {
 			case termbox.KeyEsc:
 				os.Exit(0)
-			case termbox.KeyArrowDown:
-				f.Action("Down")
+			default:
+				cn.Write(f.Action(ev.Key))
 			}
 		}
 	}
 }
             </code></pre>
-          </section>
+           </section>
+           <section>
+             <h2>Demo Time!</h2>
+           </section>
         </section>
 
         <section>
