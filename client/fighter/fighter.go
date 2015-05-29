@@ -8,13 +8,6 @@ import (
 	"time"
 )
 
-type Line struct {
-	Action string
-	Id     int
-	X      int
-	Y      int
-}
-
 type fighter struct {
 	x         int
 	y         int
@@ -25,6 +18,13 @@ type fighter struct {
 	kind      string
 	character rune
 	message   chan Line
+}
+
+type Line struct {
+	Action string
+	Id     int
+	X      int
+	Y      int
 }
 
 type Fighter interface {
