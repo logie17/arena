@@ -356,9 +356,9 @@ func(count *Count) Increment() Count {
 	return o
 }
           </code></pre>
-          <section>
-            <h2>Demo Time!</h2>
-          </section>
+        </section>
+        <section>
+          <h2>Demo Time!</h2>
         </section>
 
         <section>
@@ -537,22 +537,23 @@ func establishConnection() net.Conn {
           <section>
 	    <h2>Listen to Server Replies</h2>
 	    <pre class="fragment current-visible"><code data-trim contenteditable>
-func readFromServer(fighterId int, fighters []fighter.Fighter, bufc *bufio.Reader) {
-	go func() {
-		for {
-			line, _ := bufc.ReadString('\n') // Blocks
-			data := parseLine(string(line))
+func readFromServer(fighterId int, fighters []fighter.Fighter,
+  bufc *bufio.Reader) {
+  go func() {
+    for {
+      line, _ := bufc.ReadString('\n') // Blocks
+      data := parseLine(string(line))
 
-			if data.Id != fighterId && isNewEnemy(data.Id, fighters) {
-				enemy := fighter.NewFighter(data.X, data.Y, data.Id, "enemy")
-				fighters = append(fighters, enemy)
-			}
+      if data.Id != fighterId && isNewEnemy(data.Id, fighters) {
+        enemy := fighter.NewFighter(data.X, data.Y, data.Id, "enemy")
+        fighters = append(fighters, enemy)
+      }
 
-			for _, fighter := range fighters {
-				fighter.SendMessage(data)
-			}
-		}
-	}()
+      for _, fighter := range fighters {
+        fighter.SendMessage(data)
+      }
+    }
+  }()
 }
 	    </code></pre>
           </section>
